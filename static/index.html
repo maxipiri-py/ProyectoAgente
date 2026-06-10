@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dentidesk - Sistema Odontológico</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ================= PANTALLA DE LOGIN ================= -->
+    <div id="login-screen" class="screen active">
+        <div class="login-container">
+            <!-- Columna Izquierda (Banner) -->
+            <div class="login-banner">
+                <div class="banner-overlay"></div>
+                <div class="banner-content">
+                    <h1>¡Bienvenido/a!</h1>
+                    <p>Ingresa a tu cuenta para seguir gestionando y optimizando tu clínica dental con DENTIDESK</p>
+                </div>
+            </div>
+            <!-- Columna Derecha (Formulario) -->
+            <div class="login-form-container">
+                <div class="login-card">
+                    <div class="logo-area">
+                        <span class="tooth-logo"><i class="fa-solid fa-tooth"></i></span>
+                        <span class="logo-text">DENTI<span>DESK</span></span>
+                    </div>
+                    
+                    <form id="login-form" onsubmit="handleLogin(event)">
+                        <div class="form-group">
+                            <label for="username">Nombre de usuario o correo</label>
+                            <input type="text" id="username" value="MaximilianoC" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Contraseña</label>
+                            <div class="password-wrapper">
+                                <input type="password" id="password" value="••••••••••" required>
+                                <button type="button" class="toggle-password"><i class="fa-regular fa-eye"></i></button>
+                            </div>
+                        </div>
+                        <a href="#" class="forgot-password">Actualiza o recupera tu contraseña</a>
+                        
+                        <button type="submit" class="btn-submit">Iniciar sesión</button>
+                    </form>
+                    
+                    <div class="promo-card">
+                        <h3>¿Quieres probar DENTIDESK gratis por 15 días?</h3>
+                        <p>Tenemos una demo pensada para ti, sin compromiso y con acceso completo a todas las funciones del sistema.</p>
+                        <p class="highlight">Escríbenos directamente por WhatsApp y te ayudamos a activar tu cuenta en minutos.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= DASHBOARD PRINCIPAL ================= -->
+    <div id="dashboard-screen" class="screen">
+        <!-- Barra de Navegación Superior -->
+        <header class="navbar">
+            <div class="nav-left">
+                <div class="nav-logo">
+                    <i class="fa-solid fa-tooth logo-icon"></i>
+                    <span class="logo-title">Denti<span>desk</span></span>
+                </div>
+                <nav class="nav-menu">
+                    <a href="#" class="menu-item active"><i class="fa-regular fa-calendar-days"></i> Agenda</a>
+                    <a href="#" class="menu-item"><i class="fa-solid fa-users"></i> Pacientes</a>
+                    <a href="#" class="menu-item"><i class="fa-solid fa-user-tie"></i> Administrador</a>
+                    <a href="#" class="menu-item"><i class="fa-solid fa-chart-column"></i> Reportes</a>
+                    <a href="#" class="menu-item"><i class="fa-solid fa-gear"></i> Configuración</a>
+                </nav>
+            </div>
+            <div class="nav-right">
+                <button class="btn-buy-license">Comprar Licencia</button>
+                <div class="user-profile">
+                    <span class="user-avatar">MC</span>
+                    <span class="user-name">Dr. Maximiliano C.</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Contenedor Principal (Layout de Rejilla + Simulador de WhatsApp) -->
+        <main class="main-layout">
+            
+            <!-- SECCIÓN IZQUIERDA: La Agenda de Dentidesk -->
+            <section class="agenda-section">
+                <!-- Filtros y Cabecera de Agenda -->
+                <div class="agenda-header-controls">
+                    <div class="doctor-selector-pills">
+                        <span class="pill-btn active">M</span>
+                        <span class="pill-btn">S</span>
+                        <span class="pill-btn">D</span>
+                        <span class="pill-btn text-pill">Drs.</span>
+                        <span class="pill-btn danger-pill"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                    </div>
+                    
+                    <div class="agenda-week-title">
+                        <h2>8 — 14 de Jun. de 2026</h2>
+                    </div>
+                    
+                    <div class="agenda-nav-actions">
+                        <button class="btn-refresh" onclick="loadAgendaData()"><i class="fa-solid fa-rotate"></i></button>
+                        <div class="nav-arrow-btns">
+                            <button class="arrow-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button class="arrow-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de la Agenda Semanal -->
+                <div class="calendar-wrapper">
+                    <table class="calendar-table">
+                        <thead>
+                            <tr>
+                                <th class="col-time">Hora</th>
+                                <th>Lun. 8/6</th>
+                                <th>Mar. 9/6</th>
+                                <th>Mié. 10/6</th>
+                                <th>Jue. 11/6</th>
+                                <th>Vie. 12/6</th>
+                                <th>Sáb. 13/6</th>
+                                <th>Dom. 14/6</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calendar-body">
+                            <!-- Filas generadas dinámicamente cada 30 min por JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SECCIÓN DERECHA: Simulador de WhatsApp (IA Max) -->
+            <section class="whatsapp-simulator-section">
+                <div class="simulator-header">
+                    <h3><i class="fa-brands fa-whatsapp"></i> Simulador WhatsApp (Paciente)</h3>
+                    <button class="btn-reset-simulator" onclick="resetSystem()" title="Limpiar todos los datos para reiniciar pruebas"><i class="fa-solid fa-trash-can"></i> Limpiar</button>
+                </div>
+                
+                <div class="simulator-body">
+                    <!-- Crear / Seleccionar Paciente -->
+                    <div class="sim-panel-section">
+                        <label>Simular paciente desde campaña:</label>
+                        <div class="sim-ads-selector">
+                            <select id="sim-ad-type">
+                                <option value="protesis_acrilicas">Meta Ads: Promo Prótesis Dentales ($189.000)</option>
+                                <option value="limpieza_dental">Meta Ads: Promo Limpieza + Eval ($19.990)</option>
+                                <option value="extraccion_muelas_juicio">Meta Ads: Extracción Muelas del Juicio</option>
+                                <option value="libre">Chat Libre (Sin Anuncio)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="sim-phone-input-row">
+                            <input type="text" id="sim-phone" value="56987654321" placeholder="Teléfono del paciente">
+                            <button class="btn-action-primary" onclick="startSimulatedChat()">Iniciar Chat</button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Chats Activos -->
+                    <div class="sim-panel-section">
+                        <label>Chats activos de pacientes:</label>
+                        <select id="active-chats-dropdown" onchange="switchChatSession(this.value)">
+                            <option value="">Selecciona un chat activo...</option>
+                        </select>
+                    </div>
+
+                    <!-- Ventana de Mensajes de Chat -->
+                    <div class="chat-window-container">
+                        <div class="chat-header-info">
+                            <span id="chat-current-title">Ningún chat seleccionado</span>
+                            <span id="chat-current-state" class="state-badge">Estado: -</span>
+                        </div>
+                        <div class="chat-messages" id="chat-messages-box">
+                            <div class="chat-placeholder">
+                                <i class="fa-regular fa-comments"></i>
+                                <p>Inicia un chat o selecciona un paciente activo para ver la simulación de la conversación en tiempo real.</p>
+                            </div>
+                        </div>
+                        <!-- Programación en cola (Outbox) en tiempo real -->
+                        <div class="outbox-status-area" id="outbox-status-container">
+                            <!-- Cuenta regresiva de Max escribiendo se renderiza aquí -->
+                        </div>
+                        <!-- Input del paciente -->
+                        <div class="chat-input-row">
+                            <input type="text" id="patient-message-input" placeholder="Escribe un mensaje como paciente..." onkeydown="handleChatInputKey(event)">
+                            <button class="btn-send-msg" onclick="sendSimulatedPatientMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ================= MODAL: REGISTRAR PACIENTE EN DENTIDESK ================= -->
+    <div id="booking-modal" class="modal-overlay">
+        <div class="modal-container">
+            <!-- Encabezado Modal -->
+            <div class="modal-header">
+                <h2>Programar Cita Médica</h2>
+                <button class="modal-close-icon" onclick="closeBookingModal()">&times;</button>
+            </div>
+            
+            <!-- Cuerpo Modal -->
+            <form id="booking-form" onsubmit="saveBooking(event)">
+                <div class="modal-body-layout">
+                    
+                    <!-- Fila 1: Foto Avatar y Campos de Identidad -->
+                    <div class="modal-row profile-row">
+                        <div class="avatar-box">
+                            <i class="fa-regular fa-user"></i>
+                        </div>
+                        <div class="identity-fields">
+                            <div class="field-cols-2">
+                                <div class="form-control">
+                                    <input type="text" id="book-nombres" placeholder="Nombres *" required>
+                                </div>
+                                <div class="form-control">
+                                    <input type="text" id="book-apellidos" placeholder="Apellidos *" required>
+                                </div>
+                            </div>
+                            
+                            <div class="rut-input-group">
+                                <div class="form-control">
+                                    <input type="text" id="book-rut" placeholder="RUT *" required>
+                                </div>
+                                <div class="rut-type-radios">
+                                    <label><input type="radio" name="rut_type" value="rut" checked> RUT</label>
+                                    <label><input type="radio" name="rut_type" value="pasaporte"> Pasaporte</label>
+                                    <label><input type="radio" name="rut_type" value="otro"> Otro</label>
+                                </div>
+                            </div>
+                            <p class="rut-warning">Si no tiene el RUT a mano, puede utilizar temporalmente: 1-9 (Recuerde actualizar el rut del cliente en la ficha después)</p>
+                        </div>
+                    </div>
+
+                    <!-- Fila 2: Género, Correo y Teléfono -->
+                    <div class="modal-row grid-cols-2">
+                        <div class="form-control">
+                            <label>Género:</label>
+                            <div class="gender-radios">
+                                <label><input type="radio" name="gender" value="Masculino" checked> Masculino</label>
+                                <label><input type="radio" name="gender" value="Femenino"> Femenino</label>
+                            </div>
+                        </div>
+                        <div class="form-control">
+                            <label>Correo electrónico</label>
+                            <input type="email" id="book-email" placeholder="ejemplo@correo.com">
+                        </div>
+                    </div>
+
+                    <div class="modal-row grid-cols-2">
+                        <div class="form-control">
+                            <label>Teléfono Referencia</label>
+                            <input type="text" id="book-phone" placeholder="Ej: 56912345678" required>
+                        </div>
+                        <div class="form-control">
+                            <label>Profesional</label>
+                            <select id="book-doctor" required>
+                                <option value="Dra. Milena Rutherford">Dra. Milena Rutherford (Evaluaciones/Gral)</option>
+                                <option value="Dr. Max Cifuentes">Dr. Max Cifuentes (Cirujano Buco Maxilofacial)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Fila 3: Motivo de consulta, Fecha y hora -->
+                    <div class="modal-row grid-cols-2">
+                        <div class="form-control">
+                            <label>Seleccione Motivo de Consulta</label>
+                            <select id="book-treatment" required>
+                                <option value="limpieza_dental">Limpieza dental + evaluación + presupuesto ($19.990)</option>
+                                <option value="protesis_acrilicas">Prótesis dentales acrílicas ($189.000)</option>
+                                <option value="extraccion_muelas_juicio">Extracción muela del juicio ($100.000 / $150.000)</option>
+                                <option value="general">Consulta General / Evaluación Dental</option>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label>Canal de Referido</label>
+                            <select id="book-channel">
+                                <option value="meta_ads">Campaña Meta Ads</option>
+                                <option value="organico">Orgánico / Recomendación</option>
+                                <option value="whatsapp">WhatsApp Directo</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="modal-row date-time-row">
+                        <div class="form-control date-selects">
+                            <label>Fecha:</label>
+                            <div class="select-wrappers">
+                                <select id="book-date-day"></select>
+                                <select id="book-date-month"></select>
+                                <select id="book-date-year"></select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-control time-selects">
+                            <label>Hora:</label>
+                            <div class="select-wrappers">
+                                <select id="book-time-hour"></select>
+                                <select id="book-time-minute">
+                                    <option value="00">00</option>
+                                    <option value="30">30</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-row grid-cols-3">
+                        <div class="form-control inline-input">
+                            <label>Duración:</label>
+                            <div class="duration-input-wrapper">
+                                <input type="number" id="book-duration" value="30" min="15" step="15" required>
+                                <span>minutos</span>
+                            </div>
+                        </div>
+                        
+                        <div class="form-control inline-input">
+                            <label>Nº Box:</label>
+                            <select id="book-box">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-control inline-input">
+                            <label>Estado:</label>
+                            <div class="booking-status-indicator">
+                                <span class="status-icon-no-conf"><i class="fa-solid fa-circle-minus"></i></span>
+                                <select id="book-status">
+                                    <option value="No confirmado" selected>No confirmado</option>
+                                    <option value="Confirmado">Confirmado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fila 4: Observaciones -->
+                    <div class="modal-row">
+                        <div class="form-control">
+                            <label>Observación Interna</label>
+                            <textarea id="book-notes" placeholder="Observaciones internas del agendamiento..."></textarea>
+                            <p class="notes-disclaimer">Esta observación <strong>NO LA VERÁ</strong> el paciente en el correo de confirmación de cita</p>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Footer Modal -->
+                <div class="modal-footer">
+                    <button type="button" class="btn-modal btn-cerrar" onclick="closeBookingModal()">Cerrar</button>
+                    <button type="button" class="btn-modal btn-imprimir"><i class="fa-solid fa-print"></i> Imprimir</button>
+                    <button type="submit" class="btn-modal btn-guardar">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JS de la App -->
+    <script src="app.js"></script>
+</body>
+</html>

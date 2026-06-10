@@ -1,0 +1,31 @@
+{
+  "promociones": {
+    "protesis_acrilicas": {
+      "nombre": "Prótesis dentales acrílicas",
+      "precio": 189000,
+      "detalles": "Pueden ser totales (reemplazan todos los dientes de arriba o abajo) o parciales (reemplazan algunos dientes de arriba o abajo).",
+      "notas": "En caso de requerir prótesis unilaterales (de una sola pieza), el valor cambia y requiere evaluación clínica presencial para definir el presupuesto exacto."
+    },
+    "limpieza_dental": {
+      "nombre": "Limpieza dental + evaluación + presupuesto",
+      "precio": 19990,
+      "detalles": "Incluye limpieza dental profunda, evaluación odontológica completa y entrega de presupuesto de tratamiento.",
+      "notas": "Ideal para primera visita o mantenimiento anual."
+    },
+    "extraccion_muelas_juicio": {
+      "nombre": "Extracción de muelas del juicio",
+      "detalles": "Realizado por Cirujano Buco Maxilofacial. Es obligatorio contar con una radiografía (Rx) para evaluar la complejidad antes del procedimiento.",
+      "tipos": {
+        "media_complejidad": {
+          "precio": 100000,
+          "descripcion": "Extracción de muela del juicio con complejidad media."
+        },
+        "alta_complejidad": {
+          "precio": 150000,
+          "descripcion": "Extracción de muela del juicio con complejidad alta."
+        }
+      },
+      "pregunta_clave": "¿Cuenta actualmente con una radiografía dental (Rx) de sus muelas del juicio?"
+    }
+  }
+}
