@@ -2,21 +2,47 @@ import os
 import json
 import re
 from datetime import datetime
-import google.generativeai as genai
 from dotenv import load_dotenv
+
+# Importar de LangChain
+try:
+    from langchain_openai import ChatOpenAI
+    from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+except ImportError:
+    # Fallback si aún no están instalados al importar por primera vez
+    ChatOpenAI = None
+    SystemMessage = None
+    HumanMessage = None
+    AIMessage = None
 
 # Cargar variables de entorno
 load_dotenv()
 
-# Configurar API Key de Gemini
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-else:
-    print("WARNING: GEMINI_API_KEY no encontrada en las variables de entorno.")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_BASE = os.getenv("OPENAI_API_BASE")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 
-# Modelo por defecto
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+# Inicializar cliente de ChatOpenAI
+llm = None
+if ChatOpenAI and OPENAI_API_KEY:
+    try:
+        if OPENAI_API_BASE:
+            # GitHub Models u otro endpoint compatible
+            llm = ChatOpenAI(
+                model=OPENAI_MODEL,
+                api_key=OPENAI_API_KEY,
+                base_url=OPENAI_API_BASE,
+                temperature=0.7
+            )
+        else:
+            # OpenAI Directo
+            llm = ChatOpenAI(
+                model=OPENAI_MODEL,
+                api_key=OPENAI_API_KEY,
+                temperature=0.7
+            )
+    except Exception as e:
+        print(f"Error inicializando ChatOpenAI: {e}")
 
 # Cargar tratamientos desde JSON
 TREATMENTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "treatments.json")
@@ -37,7 +63,7 @@ REGLAS DE ORO:
 3. Tus mensajes deben ser cortos, claros y directos. No escribas párrafos largos.
 4. Mantén el foco en la promoción o consulta que inició la conversación. No abrumes con otros tratamientos a menos que el paciente lo pida.
 5. No inventes precios. Utiliza estrictamente la información de precios y condiciones provista a continuación.
-6. Si un paciente pregunta por un tratamiento que no está en la lista de promociones o cuyos precios varían, explícale de forma amable que requiere una evaluación clínica presencial (la cual incluye limpieza, diagnóstico y presupuesto por $19.990) para poder entregarle un presupuesto preciso.
+6. Si un paciente pregunta por un tratamiento que no está en la lista de promociones o cuyos precios varían, explíale de forma amable que requiere una evaluación clínica presencial (la cual incluye limpieza, diagnóstico y presupuesto por $19.990) para poder entregarle un presupuesto preciso.
 7. Cuando te pidan valores de extracción de muelas del juicio, es fundamental que preguntes amablemente si el paciente tiene una radiografía (Rx). Si no la tiene, indícale que es necesaria para evaluar la complejidad (media $100.000 o alta $150.000, ambas realizadas por el cirujano buco maxilofacial).
 8. Cuando un paciente muestre interés en agendar, indícale que verás las horas disponibles y muéstrale las opciones provistas en el contexto.
 
@@ -55,11 +81,11 @@ def get_treatments_text() -> str:
     
     # Prótesis
     pa = promos.get("protesis_acrilicas", {})
-    text += f"- {pa.get('nombre')}: ${pa.get('precio'):,} CLP. {pa.get('detalles')} {pa.get('notas')}\n"
+    text += f"- {pa.get('nombre')}: ${pa.get('precio'):,} CLP. {pa.get('detalles')} {pa.get('notes') if 'notes' in pa else pa.get('notas')}\n"
     
     # Limpieza
     ld = promos.get("limpieza_dental", {})
-    text += f"- {ld.get('nombre')}: ${ld.get('precio'):,} CLP. {ld.get('detalles')} {ld.get('notas')}\n"
+    text += f"- {ld.get('nombre')}: ${ld.get('precio'):,} CLP. {ld.get('detalles')} {ld.get('notes') if 'notes' in ld else ld.get('notas')}\n"
     
     # Extracción Muelas de Juicio
     em = promos.get("extraccion_muelas_juicio", {})
@@ -69,9 +95,23 @@ def get_treatments_text() -> str:
     
     return text
 
+def ensure_llm():
+    """Garantiza la inicialización tardía por si no se cargaron las dependencias al inicio."""
+    global llm
+    if llm is None and ChatOpenAI and OPENAI_API_KEY:
+        try:
+            if OPENAI_API_BASE:
+                llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE, temperature=0.7)
+            else:
+                llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=0.7)
+        except Exception as e:
+            print(f"Error inicializando ChatOpenAI tardío: {e}")
+    return llm
+
 def generate_response(phone_number: str, chat_history: list, session_state: str, available_slots: str = None) -> str:
-    """Genera la respuesta del asistente Max usando Gemini."""
-    if not GEMINI_API_KEY:
+    """Genera la respuesta del asistente Max usando LangChain y OpenAI/GitHub Models."""
+    client = ensure_llm()
+    if not client:
         return "Hola, lo siento, en este momento tengo un problema de conexión con mi sistema de atención. Por favor intenta escribirnos nuevamente en unos minutos."
         
     treatments_text = get_treatments_text()
@@ -82,40 +122,28 @@ def generate_response(phone_number: str, chat_history: list, session_state: str,
         current_time=current_time_str
     )
     
-    # Si tenemos ranuras de tiempo disponibles, las agregamos al prompt del sistema
     if available_slots:
         system_prompt += f"\n\nHORARIOS DISPONIBLES EN AGENDA (Ofrécelos amablemente):\n{available_slots}"
         
-    # Construir el contexto del chat
-    contents = []
-    
-    # Añadir instrucciones del sistema en el formato compatible con Gemini (system instruction)
-    # Convertir historial de chat en el formato esperado por la API
-    formatted_history = []
+    # Construir historial de mensajes para LangChain
+    messages = [SystemMessage(content=system_prompt)]
     for msg in chat_history:
-        role = "user" if msg["role"] == "user" else "model"
-        formatted_history.append({"role": role, "parts": [msg["content"]]})
-        
-    # Inicializar cliente de Gemini
+        if msg["role"] == "user":
+            messages.append(HumanMessage(content=msg["content"]))
+        else:
+            messages.append(AIMessage(content=msg["content"]))
+            
     try:
-        model = genai.GenerativeModel(
-            model_name=GEMINI_MODEL,
-            system_instruction=system_prompt
-        )
-        
-        # Generar contenido
-        response = model.generate_content(formatted_history)
-        return response.text.strip()
+        response = client.invoke(messages)
+        return response.content.strip()
     except Exception as e:
-        print(f"Error generando respuesta de Gemini: {e}")
+        print(f"Error generando respuesta de LangChain: {e}")
         return "Hola, qué gusto saludarte. Dame un momento por favor para revisar la información en el sistema."
 
 def extract_patient_details(user_message: str) -> dict:
-    """
-    Usa la IA para extraer: nombre completo, rut y teléfono del mensaje del usuario.
-    Retorna un diccionario con las llaves 'name', 'rut', 'phone'.
-    """
-    if not GEMINI_API_KEY:
+    """Usa LangChain para extraer: nombre completo, rut y teléfono del mensaje del usuario."""
+    client = ensure_llm()
+    if not client:
         return {"name": None, "rut": None, "phone": None}
         
     prompt = f"""
@@ -137,9 +165,8 @@ def extract_patient_details(user_message: str) -> dict:
     """
     
     try:
-        model = genai.GenerativeModel(model_name=GEMINI_MODEL)
-        response = model.generate_content(prompt)
-        text = response.text.strip()
+        response = client.invoke([HumanMessage(content=prompt)])
+        text = response.content.strip()
         
         # Limpiar posibles bloques de código markdown
         text = re.sub(r"```json\s*", "", text)
@@ -153,13 +180,37 @@ def extract_patient_details(user_message: str) -> dict:
         }
     except Exception as e:
         print(f"Error al extraer detalles del paciente: {e}")
-        # Intento de extracción básica con Regex por si falla la IA
-        # Extraer RUT básico chileno
+        # Regex fallback
         rut_match = re.search(r"\b(\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK])\b", user_message)
         rut = rut_match.group(1) if rut_match else None
         
-        # Extraer número telefónico básico (9 dígitos o similar)
         phone_match = re.search(r"\b(\+?56)?\s*(9\s*\d{8}|\d{8})\b", user_message)
         phone = phone_match.group(0) if phone_match else None
         
         return {"name": None, "rut": rut, "phone": phone}
+
+def extract_selected_slot(user_message: str, all_slots: list) -> str:
+    """Evalúa qué slot de la lista de disponibles seleccionó el paciente en su mensaje."""
+    client = ensure_llm()
+    if not client:
+        return None
+        
+    prompt = f"""
+    El paciente respondió: "{user_message}"
+    De la siguiente lista de horarios disponibles en la agenda, determina cuál seleccionó el paciente.
+    Formatos aceptados en la lista: 'YYYY-MM-DD HH:MM'.
+    
+    Lista de horarios disponibles:
+    {json.dumps(all_slots)}
+    
+    Responde únicamente con la fecha y hora exacta de la lista en formato 'YYYY-MM-DD HH:MM', o escribe 'none' si el paciente no seleccionó ningún horario o quiere otra fecha. No agregues texto adicional.
+    """
+    
+    try:
+        response = client.invoke([HumanMessage(content=prompt)])
+        res_text = response.content.strip()
+        if res_text != "none" and res_text in all_slots:
+            return res_text
+    except Exception as e:
+        print(f"Error extrayendo slot seleccionado con LangChain: {e}")
+    return None
