@@ -33,7 +33,14 @@ PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
 
 def send_whatsapp_message(to: str, text: str):
     """Envía un mensaje de WhatsApp real o simula el envío si no hay credenciales."""
-    if WHATSAPP_TOKEN and PHONE_NUMBER_ID:
+    # Evitar usar las credenciales de plantilla/placeholder
+    has_real_credentials = (
+        WHATSAPP_TOKEN and 
+        PHONE_NUMBER_ID and 
+        "tu_token" not in WHATSAPP_TOKEN and 
+        "tu_phone" not in PHONE_NUMBER_ID
+    )
+    if has_real_credentials:
         url = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
         headers = {
             "Authorization": f"Bearer {WHATSAPP_TOKEN}",
@@ -189,10 +196,8 @@ async def process_incoming_message(phone_number: str, text: str, referral_treatm
     if current_treatment == "limpieza_dental":
         duration = 30
         
-    # Calcular retardo humano (35 a 60 segundos)
-    delay = random.randint(35, 60)
-    # Para pruebas locales o logs rápidos, puedes configurar un delay menor en env vars si quisieras
-    # pero mantendremos el estándar de 35-60s.
+    # Calcular retardo de respuesta (5 segundos)
+    delay = 5
     
     # --- MÁQUINA DE ESTADOS ---
     
