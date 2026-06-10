@@ -18,9 +18,10 @@ except ImportError:
 # Cargar variables de entorno
 load_dotenv()
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_API_BASE = os.getenv("OPENAI_API_BASE")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("GITHUB_TOKEN")
+OPENAI_API_BASE = os.getenv("OPENAI_API_BASE") or os.getenv("OPENAI_BASE_URL") or os.getenv("GITHUB_BASE_URL")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+
 
 # Inicializar cliente de ChatOpenAI
 llm = None
