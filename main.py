@@ -63,11 +63,18 @@ def send_whatsapp_message(to: str, text: str):
                 print(f"Response: {r.text}")
             return False
     else:
-        # Modo simulación (Logs de consola)
-        print(f"\n==================================================")
-        print(f"[MOCK WHATSAPP SEND] Para: {to}")
-        print(f"Mensaje: {text}")
-        print(f"==================================================\n")
+        # Modo simulación (Logs de consola) - Evitar caídas por emojis en Windows
+        try:
+            print(f"\n==================================================")
+            print(f"[MOCK WHATSAPP SEND] Para: {to}")
+            print(f"Mensaje: {text}")
+            print(f"==================================================\n")
+        except UnicodeEncodeError:
+            clean_text = text.encode('ascii', 'ignore').decode('ascii')
+            print(f"\n==================================================")
+            print(f"[MOCK WHATSAPP SEND] Para: {to}")
+            print(f"Mensaje (Sin Emojis): {clean_text}")
+            print(f"==================================================\n")
         return True
 
 async def outbox_worker_loop():
