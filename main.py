@@ -466,13 +466,25 @@ def reset_system():
 
 @app.get("/")
 def get_index():
-    return FileResponse(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "index.html"))
+    response = FileResponse(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "index.html"))
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.get("/style.css")
 def get_css():
-    return FileResponse(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "style.css"))
+    response = FileResponse(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "style.css"))
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.get("/app.js")
 def get_js():
-    return FileResponse(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "app.js"))
+    response = FileResponse(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "app.js"))
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
