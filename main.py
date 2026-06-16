@@ -420,6 +420,32 @@ def book_slot_direct(data: dict):
         
     return {"status": "booked_successfully"}
 
+@app.post("/api/clear-chat/{phone_number}")
+def clear_chat(phone_number: str):
+    """Limpia el historial de chat de un paciente y restablece su estado a greeting."""
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    # Eliminar mensajes del chat
+    cursor.execute("DELETE FROM chat_history WHERE phone_number = ?", (phone_number,))
+    # Eliminar mensajes pendientes de la cola de salida para este número
+    cursor.execute("DELETE FROM outbox WHERE phone_number = ? AND status = 'pending'", (phone_number,))
+    # Restablecer el estado de la sesión
+    cursor.execute(
+        """
+        UPDATE sessions SET 
+            state = 'greeting', 
+            selected_slot = NULL, 
+            patient_name = NULL, 
+            patient_rut = NULL, 
+            patient_phone = NULL 
+        WHERE phone_number = ?
+        """, 
+        (phone_number,)
+    )
+    conn.commit()
+    conn.close()
+    return {"status": "chat cleared successfully"}
+
 @app.post("/api/reset")
 def reset_system():
     """Limpia la base de datos para reiniciar pruebas."""

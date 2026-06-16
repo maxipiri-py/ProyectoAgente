@@ -5,15 +5,9 @@ let pendingOutboxMessages = [];
 let calendarSchedule = [];
 
 // Calendario Configuración
-const CALENDAR_DATES = [
-    "2026-06-08", // Lunes
-    "2026-06-09", // Martes
-    "2026-06-10", // Miércoles
-    "2026-06-11", // Jueves
-    "2026-06-12", // Viernes
-    "2026-06-13", // Sábado
-    "2026-06-14"  // Domingo
-];
+let currentWeekStart = new Date("2026-06-08T00:00:00");
+let calendarDates = [];
+
 
 const TIME_SLOTS = [
     "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
@@ -23,6 +17,7 @@ const TIME_SLOTS = [
 
 // ================= INICIALIZACIÓN AL CARGAR LA PÁGINA =================
 document.addEventListener("DOMContentLoaded", () => {
+    updateCalendarDates();
     initModalSelectors();
     
     // Iniciar polling continuo cada 3 segundos
@@ -200,6 +195,9 @@ async function loadChatHistory(phone) {
             stateBadge.classList.add(`state-${session.state}`);
         }
         
+        // Mostrar botón de vaciar chat
+        document.getElementById("btn-clear-chat").style.display = "inline-flex";
+        
         const box = document.getElementById("chat-messages-box");
         box.innerHTML = "";
         
@@ -238,6 +236,9 @@ function renderPlaceholderChat() {
     document.getElementById("chat-current-title").textContent = "Ningún chat seleccionado";
     document.getElementById("chat-current-state").textContent = "Estado: -";
     document.getElementById("chat-current-state").className = "state-badge";
+    
+    // Ocultar botón de vaciar chat
+    document.getElementById("btn-clear-chat").style.display = "none";
     
     document.getElementById("chat-messages-box").innerHTML = `
         <div class="chat-placeholder">
@@ -329,7 +330,7 @@ function renderWeeklyCalendar() {
     
     // Crear matriz de ocupación [filas][columnas]
     const numRows = TIME_SLOTS.length;
-    const numCols = CALENDAR_DATES.length;
+    const numCols = calendarDates.length;
     
     const occupiedMatrix = Array(numRows).fill(null).map(() => Array(numCols).fill(null));
     
@@ -340,7 +341,7 @@ function renderWeeklyCalendar() {
         const dateStr = parts[0];
         const timeStr = parts[1];
         
-        const colIdx = CALENDAR_DATES.indexOf(dateStr);
+        const colIdx = calendarDates.indexOf(dateStr);
         const rowIdx = TIME_SLOTS.indexOf(timeStr);
         
         if (colIdx !== -1 && rowIdx !== -1) {
@@ -381,7 +382,7 @@ function renderWeeklyCalendar() {
             }
             
             const td = document.createElement("td");
-            const date = CALENDAR_DATES[c];
+            const date = calendarDates[c];
             const time = TIME_SLOTS[r];
             
             if (cellState) {
@@ -530,7 +531,6 @@ async function saveBooking(event) {
     }
 }
 
-// ================= RESTAURAR SISTEMA (RESET) =================
 async function resetSystem() {
     const conf = confirm("¿Estás seguro de que deseas limpiar la base de datos? Esto borrará todos los chats activos, el outbox y los registros simulados de Dentidesk.");
     if (!conf) return;
@@ -547,3 +547,64 @@ async function resetSystem() {
         console.error("Error resetting system: ", e);
     }
 }
+
+// ================= NAVEGACIÓN Y OPERACIONES DE CHAT =================
+
+function updateCalendarDates() {
+    calendarDates = [];
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(currentWeekStart);
+        d.setDate(currentWeekStart.getDate() + i);
+        
+        // Formato YYYY-MM-DD en hora local
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        calendarDates.push(`${y}-${m}-${day}`);
+    }
+    
+    // Actualizar el título de la semana: "8 — 14 de Jun. de 2026"
+    const startD = new Date(currentWeekStart);
+    const endD = new Date(currentWeekStart);
+    endD.setDate(startD.getDate() + 6);
+    
+    const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const titleText = `${startD.getDate()} — ${endD.getDate()} de ${meses[startD.getMonth()]}. de ${startD.getFullYear()}`;
+    document.getElementById("calendar-week-title").textContent = titleText;
+    
+    // Actualizar cabecera de la tabla
+    const headerRow = document.getElementById("calendar-header-row");
+    const diasSemana = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+    let headerHtml = `<th class="col-time">Hora</th>`;
+    
+    calendarDates.forEach((dateStr, idx) => {
+        // Parsear fecha manteniendo hora local
+        const parts = dateStr.split("-");
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        headerHtml += `<th>${diasSemana[idx]}. ${d.getDate()}/${d.getMonth() + 1}</th>`;
+    });
+    headerRow.innerHTML = headerHtml;
+}
+
+function changeWeek(offset) {
+    currentWeekStart.setDate(currentWeekStart.getDate() + (offset * 7));
+    updateCalendarDates();
+    pollSystemData();
+}
+
+async function clearActiveChat() {
+    if (!currentActivePhone) return;
+    const conf = confirm(`¿Estás seguro de que deseas vaciar el historial de chat del número +${currentActivePhone} y reiniciar su estado de agendamiento?`);
+    if (!conf) return;
+    
+    try {
+        const res = await fetch(`/api/clear-chat/${currentActivePhone}`, { method: "POST" });
+        if (res.ok) {
+            loadChatHistory(currentActivePhone);
+            pollSystemData();
+        }
+    } catch (e) {
+        console.error("Error clearing chat: ", e);
+    }
+}
+

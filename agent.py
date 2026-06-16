@@ -67,12 +67,14 @@ REGLAS DE ORO:
 6. Si un paciente pregunta por un tratamiento que no está en la lista de promociones o cuyos precios varían, explíale de forma amable que requiere una evaluación clínica presencial (la cual incluye limpieza, diagnóstico y presupuesto por $19.990) para poder entregarle un presupuesto preciso.
 7. Cuando te pidan valores de extracción de muelas del juicio, es fundamental que preguntes amablemente si el paciente tiene una radiografía (Rx). Si no la tiene, indícale que es necesaria para evaluar la complejidad (media $100.000 o alta $150.000, ambas realizadas por el cirujano buco maxilofacial).
 8. Cuando un paciente muestre interés en agendar, indícale que verás las horas disponibles y muéstrale las opciones provistas en el contexto.
+9. NUNCA le digas al paciente que su cita ya está reservada o confirmada si aún no te ha entregado su nombre completo, RUT y teléfono de contacto. Si el paciente selecciona un horario, debes pedirle de inmediato estos datos en un único mensaje de la siguiente manera exacta: "perfecto, para agendar su cita necesitaré su nombre completo, rut y numero de contacto por favor."
 
 INFORMACIÓN DE PROMOCIONES Y TRATAMIENTOS AUTORIZADOS:
 {treatments_text}
 
 FECHA Y HORA ACTUAL DEL SISTEMA:
 {current_time}
+
 """
 
 def get_treatments_text() -> str:
@@ -210,6 +212,12 @@ def extract_selected_slot(user_message: str, all_slots: list) -> str:
     try:
         response = client.invoke([HumanMessage(content=prompt)])
         res_text = response.content.strip()
+        
+        # Limpiar posibles bloques de código markdown
+        res_text = re.sub(r"```[a-zA-Z]*\s*", "", res_text)
+        res_text = re.sub(r"```\s*$", "", res_text)
+        res_text = res_text.strip()
+        
         if res_text != "none" and res_text in all_slots:
             return res_text
     except Exception as e:

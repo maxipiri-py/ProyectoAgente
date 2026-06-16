@@ -101,37 +101,33 @@
                     </div>
                     
                     <div class="agenda-week-title">
-                        <h2>8 — 14 de Jun. de 2026</h2>
+                        <h2 id="calendar-week-title">8 — 14 de Jun. de 2026</h2>
                     </div>
                     
                     <div class="agenda-nav-actions">
-                        <button class="btn-refresh" onclick="loadAgendaData()"><i class="fa-solid fa-rotate"></i></button>
+                        <button class="btn-refresh" onclick="pollSystemData()"><i class="fa-solid fa-rotate"></i></button>
                         <div class="nav-arrow-btns">
-                            <button class="arrow-btn"><i class="fa-solid fa-chevron-left"></i></button>
-                            <button class="arrow-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                            <button class="arrow-btn" onclick="changeWeek(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button class="arrow-btn" onclick="changeWeek(1)"><i class="fa-solid fa-chevron-right"></i></button>
                         </div>
                     </div>
                 </div>
+
 
                 <!-- Tabla de la Agenda Semanal -->
                 <div class="calendar-wrapper">
                     <table class="calendar-table">
                         <thead>
-                            <tr>
+                            <tr id="calendar-header-row">
                                 <th class="col-time">Hora</th>
-                                <th>Lun. 8/6</th>
-                                <th>Mar. 9/6</th>
-                                <th>Mié. 10/6</th>
-                                <th>Jue. 11/6</th>
-                                <th>Vie. 12/6</th>
-                                <th>Sáb. 13/6</th>
-                                <th>Dom. 14/6</th>
+                                <!-- Generado dinámicamente -->
                             </tr>
                         </thead>
                         <tbody id="calendar-body">
                             <!-- Filas generadas dinámicamente cada 30 min por JS -->
                         </tbody>
                     </table>
+
                 </div>
             </section>
 
@@ -173,8 +169,12 @@
                     <div class="chat-window-container">
                         <div class="chat-header-info">
                             <span id="chat-current-title">Ningún chat seleccionado</span>
-                            <span id="chat-current-state" class="state-badge">Estado: -</span>
+                            <div class="chat-header-actions">
+                                <span id="chat-current-state" class="state-badge">Estado: -</span>
+                                <button id="btn-clear-chat" class="btn-clear-chat" onclick="clearActiveChat()" style="display:none;"><i class="fa-solid fa-eraser"></i> Vaciar Chat</button>
+                            </div>
                         </div>
+
                         <div class="chat-messages" id="chat-messages-box">
                             <div class="chat-placeholder">
                                 <i class="fa-regular fa-comments"></i>
