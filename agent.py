@@ -33,14 +33,14 @@ if ChatOpenAI and OPENAI_API_KEY:
                 model=OPENAI_MODEL,
                 api_key=OPENAI_API_KEY,
                 base_url=OPENAI_API_BASE,
-                temperature=0.7
+                temperature=0.2
             )
         else:
             # OpenAI Directo
             llm = ChatOpenAI(
                 model=OPENAI_MODEL,
                 api_key=OPENAI_API_KEY,
-                temperature=0.7
+                temperature=0.2
             )
     except Exception as e:
         print(f"Error inicializando ChatOpenAI: {e}")
@@ -104,9 +104,9 @@ def ensure_llm():
     if llm is None and ChatOpenAI and OPENAI_API_KEY:
         try:
             if OPENAI_API_BASE:
-                llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE, temperature=0.7)
+                llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE, temperature=0.2)
             else:
-                llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=0.7)
+                llm = ChatOpenAI(model=OPENAI_MODEL, api_key=OPENAI_API_KEY, temperature=0.2)
         except Exception as e:
             print(f"Error inicializando ChatOpenAI tardío: {e}")
     return llm

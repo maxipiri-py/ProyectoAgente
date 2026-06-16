@@ -30,52 +30,53 @@ def init_dentidesk_db():
     conn.close()
 
 def populate_mock_schedule(cursor):
-    # Crear bloqueos para esta semana
-    # Asumimos que hoy es 2026-06-09 (según el tiempo local del sistema)
-    base_date = datetime(2026, 6, 8) # Lunes 8/6
+    # Calcular el lunes de la semana actual
+    import datetime
+    today = datetime.date.today()
+    monday = today - datetime.timedelta(days=today.weekday())
     
-    # Bloqueos fijos (naranja de la imagen)
-    # Lunes 12:30 - 13:30 (Colegio), 14:30 - 16:00 (Citacion apoderado)
-    # Martes 12:30 - 13:30 (Colegio)
-    # Miércoles 12:30 - 13:30 (Colegio)
-    # Jueves 12:30 - 13:30 (Colegio)
-    # Viernes 12:30 - 13:30 (Colegio)
+    # Formatear fechas relativas en formato 'YYYY-MM-DD'
+    d_lun = monday.strftime("%Y-%m-%d")
+    d_mar = (monday + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+    d_mie = (monday + datetime.timedelta(days=2)).strftime("%Y-%m-%d")
+    d_jue = (monday + datetime.timedelta(days=3)).strftime("%Y-%m-%d")
+    d_vie = (monday + datetime.timedelta(days=4)).strftime("%Y-%m-%d")
     
     blocked_events = [
-        # Lunes 8
-        ("2026-06-08 12:30", 60, "blocked", "Colegio"),
-        ("2026-06-08 14:30", 90, "blocked", "Citacion apoderado"),
-        ("2026-06-08 11:30", 30, "patient", "Oscar Ignacio"),
+        # Lunes
+        (f"{d_lun} 12:30", 60, "blocked", "Colegio"),
+        (f"{d_lun} 14:30", 90, "blocked", "Citacion apoderado"),
+        (f"{d_lun} 11:30", 30, "patient", "Oscar Ignacio"),
         
-        # Martes 9
-        ("2026-06-09 09:30", 30, "patient", "marcelo gumera"),
-        ("2026-06-09 10:00", 105, "patient", "Erick Carlos Retamal Ruiz"),
-        ("2026-06-09 12:00", 30, "blocked", "Karla"),
-        ("2026-06-09 12:30", 60, "blocked", "Colegio"),
-        ("2026-06-09 14:00", 75, "patient", "Gladys Beatriz Aguero Haro"),
-        ("2026-06-09 15:30", 45, "patient", "Nelly Loncomilla ygor"),
-        ("2026-06-09 17:00", 60, "blocked", "Karla / mile"),
+        # Martes
+        (f"{d_mar} 09:30", 30, "patient", "marcelo gumera"),
+        (f"{d_mar} 10:00", 105, "patient", "Erick Carlos Retamal Ruiz"),
+        (f"{d_mar} 12:00", 30, "blocked", "Karla"),
+        (f"{d_mar} 12:30", 60, "blocked", "Colegio"),
+        (f"{d_mar} 14:00", 75, "patient", "Gladys Beatriz Aguero Haro"),
+        (f"{d_mar} 15:30", 45, "patient", "Nelly Loncomilla ygor"),
+        (f"{d_mar} 17:00", 60, "blocked", "Karla / mile"),
         
-        # Miércoles 10
-        ("2026-06-10 10:00", 45, "patient", "Eudy Alberto González"),
-        ("2026-06-10 11:00", 65, "patient", "Felipe Ignacio Jara Galindo"),
-        ("2026-06-10 12:30", 60, "blocked", "Colegio"),
-        ("2026-06-10 15:00", 70, "blocked", "Mile"),
-        ("2026-06-10 17:00", 120, "blocked", "javier toledo"),
+        # Miércoles
+        (f"{d_mie} 10:00", 45, "patient", "Eudy Alberto González"),
+        (f"{d_mie} 11:00", 65, "patient", "Felipe Ignacio Jara Galindo"),
+        (f"{d_mie} 12:30", 60, "blocked", "Colegio"),
+        (f"{d_mie} 15:00", 70, "blocked", "Mile"),
+        (f"{d_mie} 17:00", 120, "blocked", "javier toledo"),
         
-        # Jueves 11
-        ("2026-06-11 10:30", 45, "patient", "maria angelica lizana"),
-        ("2026-06-11 11:30", 60, "patient", "Margarita valenzuela seguel"),
-        ("2026-06-11 12:30", 60, "blocked", "Colegio"),
-        ("2026-06-11 14:30", 30, "blocked", "Karla"),
-        ("2026-06-11 16:30", 45, "patient", "marcelo gumera"),
+        # Jueves
+        (f"{d_jue} 10:30", 45, "patient", "maria angelica lizana"),
+        (f"{d_jue} 11:30", 60, "patient", "Margarita valenzuela seguel"),
+        (f"{d_jue} 12:30", 60, "blocked", "Colegio"),
+        (f"{d_jue} 14:30", 30, "blocked", "Karla"),
+        (f"{d_jue} 16:30", 45, "patient", "marcelo gumera"),
         
-        # Viernes 12
-        ("2026-06-12 09:30", 165, "patient", "Rosa Rodriguez Carcamo"),
-        ("2026-06-12 12:30", 60, "blocked", "Cole"),
-        ("2026-06-12 15:30", 45, "patient", "Sabina Castillo Gutiérrez"),
-        ("2026-06-12 16:30", 45, "patient", "Luis Alberto guerr"),
-        ("2026-06-12 17:30", 30, "patient", "Yesica Barria"),
+        # Viernes
+        (f"{d_vie} 09:30", 165, "patient", "Rosa Rodriguez Carcamo"),
+        (f"{d_vie} 12:30", 60, "blocked", "Cole"),
+        (f"{d_vie} 15:30", 45, "patient", "Sabina Castillo Gutiérrez"),
+        (f"{d_vie} 16:30", 45, "patient", "Luis Alberto guerr"),
+        (f"{d_vie} 17:30", 30, "patient", "Yesica Barria"),
     ]
     
     for slot_start, dur, ev_type, title in blocked_events:

@@ -5,7 +5,14 @@ let pendingOutboxMessages = [];
 let calendarSchedule = [];
 
 // Calendario Configuración
-let currentWeekStart = new Date("2026-06-08T00:00:00");
+let currentWeekStart = (() => {
+    const today = new Date();
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(today.setDate(diff));
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+})();
 let calendarDates = [];
 
 
