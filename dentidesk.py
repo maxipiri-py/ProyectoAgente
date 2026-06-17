@@ -191,3 +191,19 @@ def book_slot(phone_number: str, patient_name: str, patient_rut: str, patient_ph
 
 # Inicializar BD Dentidesk al importar
 init_dentidesk_db()
+
+def delete_slot(slot_start: str) -> bool:
+    """
+    Elimina una cita agendada en la agenda de Dentidesk según el slot_start ('YYYY-MM-DD HH:MM').
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM dentidesk_schedule WHERE slot_start = ?", (slot_start,))
+        conn.commit()
+        deleted = cursor.rowcount > 0
+    except Exception as e:
+        print(f"Error al eliminar el slot: {e}")
+        deleted = False
+    conn.close()
+    return deleted

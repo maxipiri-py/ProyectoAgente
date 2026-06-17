@@ -1162,3 +1162,115 @@ label {
 .btn-guardar:hover {
     background-color: var(--accent-coral-hover);
 }
+
+/* ================= ESTILOS PANEL DATOS DE CHAT Y AUTOCOMPLETADO ================= */
+.extracted-info-panel {
+    background: linear-gradient(135deg, #f0f7f4 0%, #e8f5f1 100%);
+    border: 1px solid #c8ebd6;
+    border-radius: 8px;
+    margin: 10px;
+    padding: 12px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.extracted-panel-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #10856c;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.extracted-panel-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px 12px;
+    font-size: 0.75rem;
+    color: var(--text-dark);
+}
+
+.extracted-panel-item {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.extracted-panel-item strong {
+    color: var(--secondary-color);
+}
+
+.ext-slot-highlight {
+    background-color: #d9fdd3;
+    color: #111b21;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.btn-open-and-book {
+    width: 100%;
+    margin-top: 10px;
+    padding: 7px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #ffffff;
+    background-color: var(--primary-color);
+    border: none;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 2px 4px rgba(19, 181, 147, 0.15);
+}
+
+.btn-open-and-book:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.btn-import-chat {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 6px;
+    color: #ffffff;
+    background-color: #25d366; /* WhatsApp green */
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    margin-right: 15px;
+    box-shadow: 0 2px 4px rgba(37, 211, 102, 0.15);
+}
+
+.btn-import-chat:hover {
+    background-color: #20ba5a;
+    transform: translateY(-1px);
+}
+
+/* ================= ACCIONES DE EDICIÓN Y ELIMINACIÓN DE CITAS ================= */
+.appointment-card {
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.appointment-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+.btn-eliminar {
+    background-color: #ff4757 !important; /* Forzar color rojo para eliminar */
+    color: #ffffff !important;
+    font-weight: 600;
+    margin-right: auto; /* Alinear a la izquierda en el footer */
+}
+
+.btn-eliminar:hover {
+    background-color: #ff2e44 !important;
+}

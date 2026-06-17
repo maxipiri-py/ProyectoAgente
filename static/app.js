@@ -3,6 +3,7 @@ let currentActivePhone = "";
 let activeSessions = [];
 let pendingOutboxMessages = [];
 let calendarSchedule = [];
+let currentSelectedBookingSlot = "";
 
 // Calendario Configuración
 let currentWeekStart = (() => {
@@ -204,6 +205,29 @@ async function loadChatHistory(phone) {
         
         // Mostrar botón de vaciar chat
         document.getElementById("btn-clear-chat").style.display = "inline-flex";
+
+        // Actualizar panel de información extraída
+        const infoPanel = document.getElementById("chat-extracted-info-panel");
+        if (session && (session.patient_name || session.patient_rut || session.patient_phone || session.selected_slot)) {
+            infoPanel.style.display = "block";
+            document.getElementById("ext-patient-name").textContent = session.patient_name || "-";
+            document.getElementById("ext-patient-rut").textContent = session.patient_rut || "-";
+            document.getElementById("ext-patient-phone").textContent = session.patient_phone || "-";
+            document.getElementById("ext-selected-slot").textContent = session.selected_slot || "-";
+            
+            const btnOpenBook = document.getElementById("btn-open-and-book");
+            if (session.selected_slot) {
+                btnOpenBook.disabled = false;
+                btnOpenBook.style.opacity = "1";
+                btnOpenBook.style.cursor = "pointer";
+            } else {
+                btnOpenBook.disabled = true;
+                btnOpenBook.style.opacity = "0.6";
+                btnOpenBook.style.cursor = "not-allowed";
+            }
+        } else {
+            infoPanel.style.display = "none";
+        }
         
         const box = document.getElementById("chat-messages-box");
         box.innerHTML = "";
@@ -399,6 +423,7 @@ function renderWeeklyCalendar() {
                 
                 const card = document.createElement("div");
                 card.className = `appointment-card ${appointment.event_type}`;
+                card.onclick = () => openBookingModal(date, time, true, appointment);
                 
                 // Si es un paciente y no está confirmado, agregar clase para borde rojo
                 if (appointment.event_type === "patient") {
@@ -443,7 +468,8 @@ function renderWeeklyCalendar() {
 }
 
 // ================= MANEJO DEL MODAL DE AGENDAMIENTO =================
-function openBookingModal(dateStr, timeStr) {
+function openBookingModal(dateStr, timeStr, isEditMode = false, appointment = null) {
+    currentSelectedBookingSlot = `${dateStr} ${timeStr}`;
     const modal = document.getElementById("booking-modal");
     modal.classList.add("active");
     
@@ -460,14 +486,113 @@ function openBookingModal(dateStr, timeStr) {
     // Duración por defecto según el motivo seleccionado
     updateModalDuration();
     
-    // Limpiar campos
-    document.getElementById("book-nombres").value = "";
-    document.getElementById("book-apellidos").value = "";
-    document.getElementById("book-rut").value = "";
-    document.getElementById("book-email").value = "";
-    document.getElementById("book-phone").value = "";
-    document.getElementById("book-notes").value = "";
-    document.getElementById("book-status").value = "No confirmado";
+    const modalTitle = document.querySelector(".modal-header h2");
+    const btnImport = document.getElementById("btn-import-from-chat");
+    const btnDelete = document.getElementById("btn-delete-booking");
+    const btnGuardar = document.querySelector(".btn-guardar");
+
+    // Habilitar/deshabilitar campos según el modo
+    const formFields = document.querySelectorAll("#booking-form input, #booking-form select, #booking-form textarea");
+    formFields.forEach(field => {
+        field.disabled = isEditMode;
+    });
+
+    if (isEditMode && appointment) {
+        if (modalTitle) modalTitle.textContent = "Detalle de Cita Médica";
+        if (btnImport) btnImport.style.display = "none";
+        if (btnDelete) btnDelete.style.display = "inline-flex";
+        if (btnGuardar) btnGuardar.style.display = "none";
+
+        // Rellenar campos
+        let nombres = "";
+        let apellidos = "";
+        let treatment = "general";
+        
+        const title = appointment.title || "";
+        if (title.startsWith("Cita: ")) {
+            const content = title.substring(6);
+            const lastParenIndex = content.lastIndexOf("(");
+            if (lastParenIndex !== -1) {
+                const fullName = content.substring(0, lastParenIndex).trim();
+                const treatmentPart = content.substring(lastParenIndex + 1, content.length - 1).trim();
+                
+                const nameParts = fullName.split(/\s+/);
+                if (nameParts.length > 1) {
+                    nombres = nameParts[0];
+                    apellidos = nameParts.slice(1).join(" ");
+                } else {
+                    nombres = fullName;
+                }
+                treatment = treatmentPart;
+            } else {
+                const nameParts = content.split(/\s+/);
+                if (nameParts.length > 1) {
+                    nombres = nameParts[0];
+                    apellidos = nameParts.slice(1).join(" ");
+                } else {
+                    nombres = content;
+                }
+            }
+        } else {
+            const nameParts = title.split(/\s+/);
+            if (nameParts.length > 1) {
+                nombres = nameParts[0];
+                apellidos = nameParts.slice(1).join(" ");
+            } else {
+                nombres = title;
+            }
+        }
+
+        document.getElementById("book-nombres").value = nombres;
+        document.getElementById("book-apellidos").value = apellidos;
+        document.getElementById("book-rut").value = appointment.patient_rut || "";
+        document.getElementById("book-phone").value = appointment.patient_phone || "";
+        document.getElementById("book-treatment").value = treatment;
+        document.getElementById("book-duration").value = appointment.duration_minutes || 30;
+        document.getElementById("book-notes").value = appointment.notes || "";
+        document.getElementById("book-status").value = appointment.event_type === "patient" ? "No confirmado" : "Confirmado";
+    } else {
+        if (modalTitle) modalTitle.textContent = "Programar Cita Médica";
+        if (btnImport) btnImport.style.display = "inline-flex";
+        if (btnDelete) btnDelete.style.display = "none";
+        if (btnGuardar) btnGuardar.style.display = "inline-flex";
+
+        // Limpiar campos
+        document.getElementById("book-nombres").value = "";
+        document.getElementById("book-apellidos").value = "";
+        document.getElementById("book-rut").value = "";
+        document.getElementById("book-email").value = "";
+        document.getElementById("book-phone").value = "";
+        document.getElementById("book-notes").value = "";
+        document.getElementById("book-status").value = "No confirmado";
+    }
+}
+
+async function deleteCurrentBooking() {
+    if (!currentSelectedBookingSlot) return;
+    
+    const conf = confirm("¿Estás seguro de que deseas eliminar esta cita agendada?");
+    if (!conf) return;
+    
+    try {
+        const res = await fetch("/api/delete-booking", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                slot_str: currentSelectedBookingSlot
+            })
+        });
+        
+        if (res.ok) {
+            closeBookingModal();
+            pollSystemData();
+        } else {
+            const errData = await res.json();
+            alert(`Error: ${errData.detail}`);
+        }
+    } catch (e) {
+        console.error("Error deleting booking: ", e);
+    }
 }
 
 function closeBookingModal() {
@@ -613,5 +738,81 @@ async function clearActiveChat() {
     } catch (e) {
         console.error("Error clearing chat: ", e);
     }
+}
+
+// ================= FUNCIONES DE AUTOCOMPLETADO E IMPORTACIÓN DE CHAT =================
+
+function importChatDataIntoModal() {
+    if (!currentActivePhone) {
+        alert("No hay ningún chat de paciente activo seleccionado.");
+        return;
+    }
+    const session = activeSessions.find(s => s.phone_number === currentActivePhone);
+    if (!session) {
+        alert("No se encontró la sesión del paciente actual.");
+        return;
+    }
+    
+    // Cargar nombres y apellidos divididos por espacio
+    if (session.patient_name) {
+        const nameParts = session.patient_name.trim().split(/\s+/);
+        if (nameParts.length > 1) {
+            document.getElementById("book-nombres").value = nameParts[0];
+            document.getElementById("book-apellidos").value = nameParts.slice(1).join(" ");
+        } else {
+            document.getElementById("book-nombres").value = session.patient_name;
+            document.getElementById("book-apellidos").value = "";
+        }
+    }
+    
+    if (session.patient_rut) {
+        document.getElementById("book-rut").value = session.patient_rut;
+    }
+    
+    if (session.patient_phone) {
+        document.getElementById("book-phone").value = session.patient_phone;
+    } else {
+        document.getElementById("book-phone").value = session.phone_number;
+    }
+    
+    if (session.treatment_context) {
+        document.getElementById("book-treatment").value = session.treatment_context;
+        updateModalDuration();
+    }
+}
+
+function openAndBookFromChat() {
+    if (!currentActivePhone) return;
+    const session = activeSessions.find(s => s.phone_number === currentActivePhone);
+    if (!session || !session.selected_slot) {
+        alert("El paciente no ha seleccionado ningún horario en el chat.");
+        return;
+    }
+    
+    // El slot está en formato 'YYYY-MM-DD HH:MM'
+    const parts = session.selected_slot.split(" ");
+    const dateStr = parts[0]; // YYYY-MM-DD
+    const timeStr = parts[1]; // HH:MM
+    
+    // Verificar si la fecha pertenece a la semana visible en la agenda
+    if (!calendarDates.includes(dateStr)) {
+        // Debemos navegar a la semana del slot solicitado
+        const slotDate = new Date(dateStr + "T00:00:00");
+        // Calcular el lunes de esa semana
+        const day = slotDate.getDay();
+        const diff = slotDate.getDate() - day + (day === 0 ? -6 : 1); // lunes es 1
+        const slotMonday = new Date(slotDate.setDate(diff));
+        slotMonday.setHours(0, 0, 0, 0);
+        
+        currentWeekStart = slotMonday;
+        updateCalendarDates();
+        pollSystemData();
+    }
+    
+    // Abrir el modal de agendamiento
+    openBookingModal(dateStr, timeStr);
+    
+    // Importar los datos inmediatamente
+    importChatDataIntoModal();
 }
 

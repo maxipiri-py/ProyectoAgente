@@ -175,6 +175,20 @@
                             </div>
                         </div>
 
+                        <!-- Panel de Datos Extraídos por el Agente de IA -->
+                        <div id="chat-extracted-info-panel" class="extracted-info-panel" style="display: none;">
+                            <div class="extracted-panel-title">
+                                <i class="fa-solid fa-id-card"></i> Datos detectados por el Asistente Max:
+                            </div>
+                            <div class="extracted-panel-grid">
+                                <div class="extracted-panel-item"><strong>Nombre:</strong> <span id="ext-patient-name">-</span></div>
+                                <div class="extracted-panel-item"><strong>RUT:</strong> <span id="ext-patient-rut">-</span></div>
+                                <div class="extracted-panel-item"><strong>Teléfono:</strong> <span id="ext-patient-phone">-</span></div>
+                                <div class="extracted-panel-item"><strong>Hora Solic.:</strong> <span id="ext-selected-slot" class="ext-slot-highlight">-</span></div>
+                            </div>
+                            <button id="btn-open-and-book" class="btn-open-and-book" onclick="openAndBookFromChat()"><i class="fa-solid fa-calendar-check"></i> Abrir Hora y Registrar</button>
+                        </div>
+
                         <div class="chat-messages" id="chat-messages-box">
                             <div class="chat-placeholder">
                                 <i class="fa-regular fa-comments"></i>
@@ -203,6 +217,7 @@
             <!-- Encabezado Modal -->
             <div class="modal-header">
                 <h2>Programar Cita Médica</h2>
+                <button type="button" id="btn-import-from-chat" class="btn-import-chat" onclick="importChatDataIntoModal()"><i class="fa-brands fa-whatsapp"></i> Importar del Chat</button>
                 <button class="modal-close-icon" onclick="closeBookingModal()">&times;</button>
             </div>
             
@@ -354,6 +369,7 @@
 
                 <!-- Footer Modal -->
                 <div class="modal-footer">
+                    <button type="button" id="btn-delete-booking" class="btn-modal btn-eliminar" style="display:none;" onclick="deleteCurrentBooking()"><i class="fa-solid fa-trash-can"></i> Eliminar</button>
                     <button type="button" class="btn-modal btn-cerrar" onclick="closeBookingModal()">Cerrar</button>
                     <button type="button" class="btn-modal btn-imprimir"><i class="fa-solid fa-print"></i> Imprimir</button>
                     <button type="submit" class="btn-modal btn-guardar">Guardar</button>

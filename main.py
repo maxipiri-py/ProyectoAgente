@@ -172,12 +172,11 @@ async def webhook_listener(request: Request, background_tasks: BackgroundTasks):
 # --- LÓGICA DE PROCESAMIENTO ---
 
 async def process_incoming_message(phone_number: str, text: str, referral_treatment: str = None):
-    """Gestiona el flujo conversacional y la máquina de estados."""
+    """Gestiona el flujo conversacional delegando en el agente con herramientas."""
     print(f"\n[INCOMING] De: {phone_number} | Mensaje: {text}")
     
     # 1. Obtener o crear sesión
     session = db.get_or_create_session(phone_number, initial_treatment=referral_treatment)
-    current_state = session["state"]
     current_treatment = session["treatment_context"] or referral_treatment
     
     # Si detectamos que el usuario menciona explícitamente algún tratamiento, actualizamos el contexto
@@ -191,143 +190,19 @@ async def process_incoming_message(phone_number: str, text: str, referral_treatm
         
     if current_treatment != session["treatment_context"]:
         db.update_session(phone_number, treatment_context=current_treatment)
+        session["treatment_context"] = current_treatment
         
     # Guardar mensaje del usuario en el historial
     db.add_chat_message(phone_number, "user", text)
     
-    # Obtener historial de chat
+    # Obtener historial de chat completo
     history = db.get_chat_history(phone_number)
     
-    # Duración de cita por defecto
-    duration = 60
-    if current_treatment == "limpieza_dental":
-        duration = 30
-        
-    # Calcular retardo de respuesta (5 segundos)
-    delay = 5
+    # Generar respuesta final con el agente de IA utilizando herramientas nativas
+    response_text = agent.generate_response_with_tools(phone_number, history, session)
     
-    # --- MÁQUINA DE ESTADOS ---
-    
-    # CASO A: Esperando los datos del paciente para agendar
-    if current_state == "scheduling_selected":
-        # Extraer detalles
-        extracted = agent.extract_patient_details(text)
-        
-        # Combinar con datos previos si ya existían
-        name = extracted["name"] or session["patient_name"]
-        rut = extracted["rut"] or session["patient_rut"]
-        phone = extracted["phone"] or session["patient_phone"]
-        
-        db.update_session(phone_number, patient_name=name, patient_rut=rut, patient_phone=phone)
-        
-        if name and rut and phone:
-            # Confirmar cita en Dentidesk
-            slot = session["selected_slot"]
-            success = dentidesk.book_slot(
-                phone_number=phone_number,
-                patient_name=name,
-                patient_rut=rut,
-                patient_phone=phone,
-                slot_str=slot,
-                treatment=current_treatment or "Consulta Dental",
-                duration_minutes=duration
-            )
-            
-            if success:
-                db.update_session(phone_number, state="booked")
-                # Formatear fecha legible
-                dt_slot = datetime.strptime(slot, "%Y-%m-%d %H:%M")
-                fecha_legible = dt_slot.strftime("%d/%m/%Y a las %H:%M")
-                
-                response_text = f"¡Cita agendada con éxito, {name}! Le he reservado para el {fecha_legible} hrs. Estaremos en contacto por este medio para confirmarla previamente o por teléfono si es necesario. ¡Muchas gracias por preferirnos!"
-            else:
-                response_text = "Disculpe, parece que ese horario acaba de ser reservado. Permítame consultar nuevamente las horas disponibles de la agenda."
-                db.update_session(phone_number, state="information", selected_slot=None)
-                # Volver a listar horas en el siguiente paso
-        else:
-            # Pedir los datos faltantes
-            missing = []
-            if not name: missing.append("nombre completo")
-            if not rut: missing.append("rut")
-            if not phone: missing.append("número de contacto")
-            
-            missing_str = ", ".join(missing)
-            response_text = f"Gracias. Para finalizar el agendamiento, aún me falta su {missing_str}. ¿Podría indicármelo por favor?"
-            
-        db.queue_outgoing_message(phone_number, response_text, delay)
-        return
-
-    # CASO B: El paciente tiene ofertas de horarios en pantalla y está eligiendo uno
-    if current_state == "scheduling_offered":
-        # Obtener ranuras libres para pasárselas a la IA y que evalúe cuál eligió
-        slots_dict = dentidesk.get_available_slots(duration)
-        all_slots = []
-        for date_str, times in slots_dict.items():
-            for t in times:
-                all_slots.append(f"{date_str} {t}")
-                
-        # Preguntar a Gemini qué slot eligió el usuario
-        slot_extraction_prompt = f"""
-        El paciente respondió: "{text}"
-        De la siguiente lista de horarios disponibles en la agenda, determina cuál seleccionó el paciente.
-        Formatos aceptados en la lista: 'YYYY-MM-DD HH:MM'.
-        
-        Lista de horarios disponibles:
-        {json.dumps(all_slots)}
-        
-        Responde únicamente con la fecha y hora exacta de la lista en formato 'YYYY-MM-DD HH:MM', o escribe 'none' si el paciente no seleccionó ningún horario o quiere otra fecha. No agregues texto adicional.
-        """
-        
-        selected_slot = None
-        try:
-            model = agent.genai.GenerativeModel(model_name=agent.GEMINI_MODEL)
-            res = model.generate_content(slot_extraction_prompt)
-            res_text = res.text.strip()
-            if res_text != "none" and res_text in all_slots:
-                selected_slot = res_text
-        except Exception as e:
-            print(f"Error extrayendo slot seleccionado: {e}")
-            
-        if selected_slot:
-            db.update_session(phone_number, state="scheduling_selected", selected_slot=selected_slot)
-            # Enviar mensaje de solicitud de datos en una sola vez (Regla de negocio)
-            response_text = "perfecto, para agendar su cita necesitaré su nombre completo, rut y numero de contacto por favor."
-            db.queue_outgoing_message(phone_number, response_text, delay)
-            return
-        else:
-            # Si no seleccionó un slot válido, volvemos a evaluar conversacionalmente
-            # Podría querer otro día o tener dudas.
-            pass
-
-    # CASO C: Estado general (Conversación normal)
-    # Detectar si el usuario está solicitando agendar u horarios disponibles
-    is_scheduling_intent = any(k in text_lower for k in ["agendar", "hora", "disponibilidad", "cita", "turno", "calendario", "reservar", "fechas", "cuándo puedo ir"])
-    
-    available_slots_text = None
-    if is_scheduling_intent:
-        slots_dict = dentidesk.get_available_slots(duration)
-        if slots_dict:
-            # Formatear las horas disponibles para la IA
-            slots_lines = []
-            for date_str, times in list(slots_dict.items())[:4]: # Mostrar próximos 4 días con disponibilidad
-                dt_obj = datetime.strptime(date_str, "%Y-%m-%d")
-                dias_semana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
-                dia_nombre = dias_semana[dt_obj.weekday()]
-                slots_lines.append(f"- {dia_nombre} {dt_obj.strftime('%d/%m')}: {', '.join(times)}")
-            available_slots_text = "\n".join(slots_lines)
-            
-            db.update_session(phone_number, state="scheduling_offered")
-        else:
-            available_slots_text = "No hay horarios disponibles en los próximos 7 días en el sistema."
-
-    # Generar respuesta final con el agente de IA
-    response_text = agent.generate_response(phone_number, history, current_state, available_slots_text)
-    
-    # Si detectamos que la IA ofreció horarios (porque nosotros se los pasamos), nos aseguramos de que el estado sea scheduling_offered
-    if is_scheduling_intent and slots_dict:
-        db.update_session(phone_number, state="scheduling_offered")
-        
-    db.queue_outgoing_message(phone_number, response_text, delay)
+    # Encolar la respuesta saliente (delay de 2 segundos)
+    db.queue_outgoing_message(phone_number, response_text, 2)
 
 
 # --- ENDPOINTS DE SIMULACIÓN Y MONITOREO (API PARA EL FRONTEND) ---
@@ -419,6 +294,17 @@ def book_slot_direct(data: dict):
         raise HTTPException(status_code=400, detail="El horario seleccionado no está disponible o ya está ocupado")
         
     return {"status": "booked_successfully"}
+
+@app.post("/api/delete-booking")
+def delete_booking(data: dict):
+    """Permite al frontend eliminar una cita en Dentidesk."""
+    slot_str = data.get("slot_str")
+    if not slot_str:
+        raise HTTPException(status_code=400, detail="Falta el horario de la cita a eliminar")
+    success = dentidesk.delete_slot(slot_str)
+    if not success:
+        raise HTTPException(status_code=404, detail="No se encontró una cita en ese horario")
+    return {"status": "deleted_successfully"}
 
 @app.post("/api/clear-chat/{phone_number}")
 def clear_chat(phone_number: str):
