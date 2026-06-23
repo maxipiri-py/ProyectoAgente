@@ -5,6 +5,27 @@ let pendingOutboxMessages = [];
 let calendarSchedule = [];
 let currentSelectedBookingSlot = "";
 
+async function fetchWithAuth(url, options = {}) {
+    const token = localStorage.getItem("admin_token");
+    if (!options.headers) {
+        options.headers = {};
+    }
+    if (token) {
+        options.headers["Authorization"] = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(url, options);
+    
+    if (response.status === 401) {
+        localStorage.removeItem("admin_token");
+        document.getElementById("dashboard-screen").classList.remove("active");
+        document.getElementById("login-screen").classList.add("active");
+        document.getElementById("password").value = "";
+    }
+    
+    return response;
+}
+
 // Calendario Configuración
 let currentWeekStart = (() => {
     const today = new Date();
@@ -27,10 +48,23 @@ const TIME_SLOTS = [
 document.addEventListener("DOMContentLoaded", () => {
     updateCalendarDates();
     initModalSelectors();
+    checkAuthOnLoad();
     
     // Iniciar polling continuo cada 3 segundos
     setInterval(pollSystemData, 3000);
 });
+
+function checkAuthOnLoad() {
+    const token = localStorage.getItem("admin_token");
+    if (token) {
+        document.getElementById("login-screen").classList.remove("active");
+        document.getElementById("dashboard-screen").classList.add("active");
+        pollSystemData();
+    } else {
+        document.getElementById("login-screen").classList.add("active");
+        document.getElementById("dashboard-screen").classList.remove("active");
+    }
+}
 
 // Inicializar selectores dinámicos en el modal (días, meses, horas)
 function initModalSelectors() {
@@ -74,15 +108,36 @@ function initModalSelectors() {
 }
 
 // ================= MANEJO DE VISTAS Y AUTENTICACIÓN SIMULADA =================
-function handleLogin(event) {
+async function handleLogin(event) {
     event.preventDefault();
     
-    // Simular login exitoso
-    document.getElementById("login-screen").classList.remove("active");
-    document.getElementById("dashboard-screen").classList.add("active");
+    const password = document.getElementById("password").value;
     
-    // Cargar datos iniciales
-    pollSystemData();
+    try {
+        const response = await fetch("/api/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ password: password })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem("admin_token", data.token);
+            
+            document.getElementById("login-screen").classList.remove("active");
+            document.getElementById("dashboard-screen").classList.add("active");
+            
+            pollSystemData();
+        } else {
+            const errData = await response.json();
+            alert("Error de autenticación: " + (errData.detail || "Credenciales incorrectas"));
+        }
+    } catch (e) {
+        console.error("Login error:", e);
+        alert("Error de conexión al intentar iniciar sesión.");
+    }
 }
 
 // Ocultar/mostrar contraseña en el login
@@ -109,12 +164,12 @@ async function pollSystemData() {
     
     try {
         // Cargar sesiones activas
-        const resSessions = await fetch("/api/sessions");
+        const resSessions = await fetchWithAuth("/api/sessions");
         activeSessions = await resSessions.json();
         updateActiveChatsDropdown();
 
         // Cargar mensajes pendientes de outbox
-        const resOutbox = await fetch("/api/outbox");
+        const resOutbox = await fetchWithAuth("/api/outbox");
         pendingOutboxMessages = await resOutbox.json();
         renderOutboxStatus();
 
@@ -124,7 +179,7 @@ async function pollSystemData() {
         }
 
         // Cargar agenda de Dentidesk
-        const resSchedule = await fetch("/api/schedule");
+        const resSchedule = await fetchWithAuth("/api/schedule");
         calendarSchedule = await resSchedule.json();
         renderWeeklyCalendar();
         
@@ -155,7 +210,7 @@ async function startSimulatedChat() {
     }
     
     try {
-        const res = await fetch("/api/simulate-incoming", {
+        const res = await fetchWithAuth("/api/simulate-incoming", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: jsonPayload = JSON.stringify({
@@ -187,7 +242,7 @@ function switchChatSession(phone) {
 // Cargar historial del chat seleccionado
 async function loadChatHistory(phone) {
     try {
-        const res = await fetch(`/api/history/${phone}`);
+        const res = await fetchWithAuth(`/api/history/${phone}`);
         const history = await res.json();
         
         const session = activeSessions.find(s => s.phone_number === phone);
@@ -286,7 +341,7 @@ async function sendSimulatedPatientMessage() {
     if (!msg || !currentActivePhone) return;
     
     try {
-        const res = await fetch("/api/simulate-incoming", {
+        const res = await fetchWithAuth("/api/simulate-incoming", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -575,7 +630,7 @@ async function deleteCurrentBooking() {
     if (!conf) return;
     
     try {
-        const res = await fetch("/api/delete-booking", {
+        const res = await fetchWithAuth("/api/delete-booking", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -637,7 +692,7 @@ async function saveBooking(event) {
     const slotStr = `${year}-${month}-${day} ${hour}:${minute}`;
     
     try {
-        const res = await fetch("/api/book", {
+        const res = await fetchWithAuth("/api/book", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -668,7 +723,7 @@ async function resetSystem() {
     if (!conf) return;
     
     try {
-        const res = await fetch("/api/reset", { method: "POST" });
+        const res = await fetchWithAuth("/api/reset", { method: "POST" });
         if (res.ok) {
             currentActivePhone = "";
             renderPlaceholderChat();
@@ -730,7 +785,7 @@ async function clearActiveChat() {
     if (!conf) return;
     
     try {
-        const res = await fetch(`/api/clear-chat/${currentActivePhone}`, { method: "POST" });
+        const res = await fetchWithAuth(`/api/clear-chat/${currentActivePhone}`, { method: "POST" });
         if (res.ok) {
             loadChatHistory(currentActivePhone);
             pollSystemData();

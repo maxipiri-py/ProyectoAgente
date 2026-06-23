@@ -3,10 +3,17 @@ import json
 import random
 import asyncio
 import requests
+import hmac
+import hashlib
+import time
+from collections import defaultdict
 from datetime import datetime
-from fastapi import FastAPI, Request, Response, BackgroundTasks, HTTPException
+from fastapi import FastAPI, Request, Response, BackgroundTasks, HTTPException, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel, Field
+from typing import Optional
 from dotenv import load_dotenv
 
 import database as db
@@ -15,7 +22,106 @@ import agent
 
 load_dotenv()
 
-app = FastAPI(title="Plaza Dent AI Agent Service")
+# Variables de entorno de seguridad
+ADMIN_API_TOKEN = os.getenv("ADMIN_API_TOKEN")
+ENV = os.getenv("ENV", "development")
+META_APP_SECRET = os.getenv("META_APP_SECRET")
+
+# Configurar esquema Bearer
+security = HTTPBearer(auto_error=False)
+
+# Modelos Pydantic para Validación de Entrada
+class LoginRequest(BaseModel):
+    password: str
+
+class SimulateIncomingRequest(BaseModel):
+    phone_number: Optional[str] = "56912345678"
+    message: str = Field(..., min_length=1, max_length=2000)
+    referral: Optional[str] = None
+
+class BookSlotRequest(BaseModel):
+    phone_number: Optional[str] = None
+    patient_name: str
+    patient_rut: str
+    patient_phone: Optional[str] = None
+    slot_str: str
+    treatment: Optional[str] = "general"
+    duration_minutes: int
+    notes: Optional[str] = ""
+
+class DeleteBookingRequest(BaseModel):
+    slot_str: str
+
+# Almacenamiento en memoria para Rate Limiting
+RATE_LIMIT_STORE = defaultdict(list)
+
+def check_rate_limit(identifier: str, max_requests: int = 15, period: int = 60):
+    """
+    Verifica si un identificador (IP o Teléfono) excede el rate limit.
+    Por defecto: Máximo 15 peticiones por minuto.
+    """
+    now = time.time()
+    # Mantener solo las marcas de tiempo dentro del período
+    RATE_LIMIT_STORE[identifier] = [t for t in RATE_LIMIT_STORE[identifier] if now - t < period]
+    
+    if len(RATE_LIMIT_STORE[identifier]) >= max_requests:
+        raise HTTPException(
+            status_code=429,
+            detail="Límite de peticiones excedido. Inténtelo más tarde."
+        )
+    RATE_LIMIT_STORE[identifier].append(now)
+
+def audit_log(action: str, ip: str):
+    """Registra una acción de auditoría en audit.log y stdout."""
+    timestamp = datetime.now().isoformat()
+    log_line = f"[{timestamp}] IP: {ip} | Action: {action}\n"
+    print(f"[AUDIT] {log_line.strip()}")
+    try:
+        with open("audit.log", "a", encoding="utf-8") as f:
+            f.write(log_line)
+    except Exception as e:
+        print(f"Error escribiendo en log de auditoria: {e}")
+
+def validate_admin_token(credentials: HTTPAuthorizationCredentials = Security(security)):
+    """Valida el Bearer Token enviado en las cabeceras contra ADMIN_API_TOKEN."""
+    if not ADMIN_API_TOKEN:
+        raise HTTPException(
+            status_code=500,
+            detail="ADMIN_API_TOKEN no está configurado en el servidor"
+        )
+    if not credentials or credentials.credentials != ADMIN_API_TOKEN:
+        raise HTTPException(
+            status_code=401,
+            detail="Token de autorización inválido o faltante"
+        )
+    return credentials.credentials
+
+# Inicialización Condicional de FastAPI para Deshabilitar Documentación en Producción
+if ENV == "production":
+    app = FastAPI(
+        title="Plaza Dent AI Agent Service",
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None
+    )
+else:
+    app = FastAPI(title="Plaza Dent AI Agent Service")
+
+# Middleware para Agregar Cabeceras de Seguridad y Ocultar/Normalizar Servidor
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
+        "img-src 'self' data:; "
+        "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;"
+    )
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "same-origin"
+    response.headers["Server"] = "Hidden"
+    return response
 
 # Habilitar CORS para cuando desarrollemos el Frontend
 app.add_middleware(
@@ -122,7 +228,35 @@ def verify_webhook(request: Request):
 @app.post("/webhook")
 async def webhook_listener(request: Request, background_tasks: BackgroundTasks):
     """Receptor de webhooks de mensajes entrantes de WhatsApp."""
-    payload = await request.json()
+    # 1. IP Rate Limiting
+    client_ip = request.client.host if request.client else "unknown"
+    check_rate_limit(f"ip:{client_ip}", max_requests=30, period=60)
+    
+    # 2. X-Hub-Signature-256 Verification
+    raw_body = await request.body()
+    signature_header = request.headers.get("X-Hub-Signature-256")
+    
+    if not META_APP_SECRET:
+        if ENV == "production":
+            raise HTTPException(status_code=500, detail="META_APP_SECRET no está configurado en el servidor")
+        else:
+            print("[WARNING] META_APP_SECRET no está configurado. Saltando firma del webhook.")
+    else:
+        if not signature_header or not signature_header.startswith("sha256="):
+            raise HTTPException(status_code=401, detail="Firma de webhook ausente o formato incorrecto")
+        expected_sig = signature_header.split("sha256=")[1]
+        computed_sig = hmac.new(
+            META_APP_SECRET.encode("utf-8"),
+            raw_body,
+            hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(computed_sig, expected_sig):
+            raise HTTPException(status_code=401, detail="Firma de webhook inválida")
+
+    try:
+        payload = json.loads(raw_body.decode("utf-8"))
+    except Exception:
+        return Response(content="INVALID_JSON", status_code=400)
     
     # Validar que sea un mensaje de WhatsApp
     if "object" in payload and payload["object"] == "whatsapp_business_account":
@@ -133,6 +267,8 @@ async def webhook_listener(request: Request, background_tasks: BackgroundTasks):
                 for msg in messages:
                     # Capturar número de teléfono y mensaje
                     phone_number = msg.get("from")
+                    if phone_number:
+                        check_rate_limit(f"phone:{phone_number}", max_requests=10, period=60)
                     msg_type = msg.get("type")
                     
                     user_text = ""
@@ -207,25 +343,41 @@ async def process_incoming_message(phone_number: str, text: str, referral_treatm
 
 # --- ENDPOINTS DE SIMULACIÓN Y MONITOREO (API PARA EL FRONTEND) ---
 
+@app.post("/api/login")
+def login(request_data: LoginRequest):
+    password = request_data.password
+    if not password:
+        raise HTTPException(status_code=400, detail="Contraseña requerida")
+    if not ADMIN_API_TOKEN:
+        raise HTTPException(status_code=500, detail="ADMIN_API_TOKEN no está configurado en el servidor")
+    if password == ADMIN_API_TOKEN:
+        return {"token": ADMIN_API_TOKEN}
+    else:
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
 @app.post("/api/simulate-incoming")
-async def simulate_incoming(data: dict, background_tasks: BackgroundTasks):
+async def simulate_incoming(request_data: SimulateIncomingRequest, request: Request, background_tasks: BackgroundTasks, token: str = Depends(validate_admin_token)):
     """
     Simula la llegada de un mensaje de WhatsApp.
     Útil para pruebas de desarrollo.
     Payload: { "phone_number": "56912345678", "message": "Hola, precio de limpieza", "referral": null }
     """
-    phone_number = data.get("phone_number", "56912345678")
-    message = data.get("message", "")
-    referral = data.get("referral")
+    # 1. IP Rate Limiting
+    client_ip = request.client.host if request.client else "unknown"
+    check_rate_limit(f"ip:{client_ip}", max_requests=10, period=60)
     
-    if not message:
-        raise HTTPException(status_code=400, detail="Message content required")
-        
+    phone_number = request_data.phone_number or "56912345678"
+    # 2. Phone Rate Limiting
+    check_rate_limit(f"phone:{phone_number}", max_requests=5, period=60)
+    
+    message = request_data.message
+    referral = request_data.referral
+    
     background_tasks.add_task(process_incoming_message, phone_number, message, referral)
     return {"status": "processing", "simulated_delay_seconds": "35-60s"}
 
 @app.get("/api/sessions")
-def get_sessions():
+def get_sessions(token: str = Depends(validate_admin_token)):
     """Retorna todas las sesiones activas en la BD."""
     conn = db.get_connection()
     cursor = conn.cursor()
@@ -235,7 +387,7 @@ def get_sessions():
     return [dict(r) for r in rows]
 
 @app.get("/api/history/{phone_number}")
-def get_history(phone_number: str):
+def get_history(phone_number: str, token: str = Depends(validate_admin_token)):
     """Retorna el historial completo del chat para un paciente."""
     conn = db.get_connection()
     cursor = conn.cursor()
@@ -248,7 +400,7 @@ def get_history(phone_number: str):
     return [dict(r) for r in rows]
 
 @app.get("/api/outbox")
-def get_outbox():
+def get_outbox(token: str = Depends(validate_admin_token)):
     """Retorna la cola de mensajes salientes (outbox)."""
     conn = db.get_connection()
     cursor = conn.cursor()
@@ -258,7 +410,7 @@ def get_outbox():
     return [dict(r) for r in rows]
 
 @app.get("/api/schedule")
-def get_schedule():
+def get_schedule(token: str = Depends(validate_admin_token)):
     """Retorna el calendario interno de Dentidesk para monitorear."""
     conn = db.get_connection()
     cursor = conn.cursor()
@@ -268,19 +420,16 @@ def get_schedule():
     return [dict(r) for r in rows]
 
 @app.post("/api/book")
-def book_slot_direct(data: dict):
+def book_slot_direct(request_data: BookSlotRequest, token: str = Depends(validate_admin_token)):
     """Permite al frontend registrar una cita en Dentidesk manualmente."""
-    phone_number = data.get("phone_number")
-    patient_name = data.get("patient_name")
-    patient_rut = data.get("patient_rut")
-    patient_phone = data.get("patient_phone")
-    slot_str = data.get("slot_str")
-    treatment = data.get("treatment")
-    duration_minutes = int(data.get("duration_minutes", 30))
+    phone_number = request_data.phone_number
+    patient_name = request_data.patient_name
+    patient_rut = request_data.patient_rut
+    patient_phone = request_data.patient_phone
+    slot_str = request_data.slot_str
+    treatment = request_data.treatment
+    duration_minutes = request_data.duration_minutes
     
-    if not (patient_name and patient_rut and slot_str):
-        raise HTTPException(status_code=400, detail="Faltan datos obligatorios para el agendamiento")
-        
     success = dentidesk.book_slot(
         phone_number=phone_number or patient_phone,
         patient_name=patient_name,
@@ -296,19 +445,20 @@ def book_slot_direct(data: dict):
     return {"status": "booked_successfully"}
 
 @app.post("/api/delete-booking")
-def delete_booking(data: dict):
+def delete_booking(request_data: DeleteBookingRequest, token: str = Depends(validate_admin_token)):
     """Permite al frontend eliminar una cita en Dentidesk."""
-    slot_str = data.get("slot_str")
-    if not slot_str:
-        raise HTTPException(status_code=400, detail="Falta el horario de la cita a eliminar")
+    slot_str = request_data.slot_str
     success = dentidesk.delete_slot(slot_str)
     if not success:
         raise HTTPException(status_code=404, detail="No se encontró una cita en ese horario")
     return {"status": "deleted_successfully"}
 
 @app.post("/api/clear-chat/{phone_number}")
-def clear_chat(phone_number: str):
+def clear_chat(phone_number: str, request: Request, token: str = Depends(validate_admin_token)):
     """Limpia el historial de chat de un paciente y restablece su estado a greeting."""
+    client_ip = request.client.host if request.client else "unknown"
+    audit_log(f"CLEAR_CHAT: {phone_number}", client_ip)
+    
     conn = db.get_connection()
     cursor = conn.cursor()
     # Eliminar mensajes del chat
@@ -333,8 +483,14 @@ def clear_chat(phone_number: str):
     return {"status": "chat cleared successfully"}
 
 @app.post("/api/reset")
-def reset_system():
+def reset_system(request: Request, token: str = Depends(validate_admin_token)):
     """Limpia la base de datos para reiniciar pruebas."""
+    client_ip = request.client.host if request.client else "unknown"
+    audit_log("SYSTEM_RESET", client_ip)
+    
+    if ENV == "production":
+        raise HTTPException(status_code=403, detail="El reinicio del sistema no está permitido en producción")
+        
     conn = db.get_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM chat_history")
