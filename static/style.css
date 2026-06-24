@@ -1274,3 +1274,251 @@ label {
 .btn-eliminar:hover {
     background-color: #ff2e44 !important;
 }
+
+/* ================= ESTILOS VISTAS ADICIONALES (PACIENTES, ADMINISTRADOR, REPORTES, CONFIGURACIÓN) ================= */
+.view-section {
+    width: 72%;
+    height: 100%;
+    background-color: #ffffff;
+    display: none; /* Se activa mediante JS */
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+    padding: 24px;
+    overflow-y: auto;
+    gap: 20px;
+}
+
+.view-header {
+    margin-bottom: 10px;
+}
+
+.view-header h2 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.6rem;
+    color: var(--secondary-color);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.view-header h2 i {
+    color: var(--primary-color);
+}
+
+.view-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.view-content-card {
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: var(--card-shadow);
+}
+
+.view-content-card h3 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.15rem;
+    color: var(--secondary-color);
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.view-content-card h3 i {
+    color: var(--primary-color);
+}
+
+/* Tablas Informativas */
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 5px;
+}
+
+.info-table th {
+    background-color: #f8fafc;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.info-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.88rem;
+    color: var(--text-dark);
+}
+
+.info-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.badge-success {
+    background-color: #e6f7f0;
+    color: #1aa06d;
+}
+
+.badge-warning {
+    background-color: #fef8e7;
+    color: #bfa100;
+}
+
+.badge-danger {
+    background-color: #fdf2f2;
+    color: #d93838;
+}
+
+/* Grillas */
+.admin-grid, .config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+/* Listas de Información */
+.info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.info-item {
+    font-size: 0.88rem;
+    color: var(--text-dark);
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 8px;
+}
+
+.info-item strong {
+    color: var(--secondary-color);
+}
+
+/* Staff List */
+.staff-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.staff-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: #fafbfc;
+}
+
+.staff-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e8f5f1;
+    color: var(--primary-color);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    border: 1px solid #c8ebd6;
+}
+
+.staff-info {
+    flex: 1;
+}
+
+.staff-info h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--secondary-color);
+    margin-bottom: 2px;
+}
+
+.staff-info p {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.box-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    background-color: #eef2f5;
+    color: var(--text-dark);
+    font-size: 0.7rem;
+    font-weight: 500;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+
+/* KPI Cards */
+.kpi-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.kpi-card {
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: var(--card-shadow);
+}
+
+.kpi-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background-color: #e8f5f1;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.kpi-data {
+    display: flex;
+    flex-direction: column;
+}
+
+.kpi-value {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--secondary-color);
+    line-height: 1;
+}
+
+.kpi-title {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}

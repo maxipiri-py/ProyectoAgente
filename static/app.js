@@ -779,6 +779,37 @@ function changeWeek(offset) {
     pollSystemData();
 }
 
+function switchView(viewId, event) {
+    if (event) {
+        event.preventDefault();
+    }
+    
+    // Desactivar todas las pestañas del menú
+    const menuItems = document.querySelectorAll(".nav-menu .menu-item");
+    menuItems.forEach(item => {
+        item.classList.remove("active");
+    });
+    
+    // Activar la pestaña seleccionada
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add("active");
+    }
+    
+    // Ocultar todas las secciones del panel central
+    const sections = document.querySelectorAll(".main-layout > section");
+    sections.forEach(sec => {
+        if (sec.id && sec.id.startsWith("view-")) {
+            sec.style.display = "none";
+        }
+    });
+    
+    // Mostrar la sección seleccionada
+    const activeSec = document.getElementById(`view-${viewId}`);
+    if (activeSec) {
+        activeSec.style.display = "flex";
+    }
+}
+
 async function clearActiveChat() {
     if (!currentActivePhone) return;
     const conf = confirm(`¿Estás seguro de que deseas vaciar el historial de chat del número +${currentActivePhone} y reiniciar su estado de agendamiento?`);

@@ -69,11 +69,11 @@
                     <span class="logo-title">Denti<span>desk</span></span>
                 </div>
                 <nav class="nav-menu">
-                    <a href="#" class="menu-item active"><i class="fa-regular fa-calendar-days"></i> Agenda</a>
-                    <a href="#" class="menu-item"><i class="fa-solid fa-users"></i> Pacientes</a>
-                    <a href="#" class="menu-item"><i class="fa-solid fa-user-tie"></i> Administrador</a>
-                    <a href="#" class="menu-item"><i class="fa-solid fa-chart-column"></i> Reportes</a>
-                    <a href="#" class="menu-item"><i class="fa-solid fa-gear"></i> Configuración</a>
+                    <a href="#" class="menu-item active" onclick="switchView('agenda', event)"><i class="fa-regular fa-calendar-days"></i> Agenda</a>
+                    <a href="#" class="menu-item" onclick="switchView('pacientes', event)"><i class="fa-solid fa-users"></i> Pacientes</a>
+                    <a href="#" class="menu-item" onclick="switchView('administrador', event)"><i class="fa-solid fa-user-tie"></i> Administrador</a>
+                    <a href="#" class="menu-item" onclick="switchView('reportes', event)"><i class="fa-solid fa-chart-column"></i> Reportes</a>
+                    <a href="#" class="menu-item" onclick="switchView('configuracion', event)"><i class="fa-solid fa-gear"></i> Configuración</a>
                 </nav>
             </div>
             <div class="nav-right">
@@ -89,7 +89,7 @@
         <main class="main-layout">
             
             <!-- SECCIÓN IZQUIERDA: La Agenda de Dentidesk -->
-            <section class="agenda-section">
+            <section id="view-agenda" class="agenda-section">
                 <!-- Filtros y Cabecera de Agenda -->
                 <div class="agenda-header-controls">
                     <div class="doctor-selector-pills">
@@ -128,6 +128,248 @@
                         </tbody>
                     </table>
 
+                </div>
+            </section>
+
+            <!-- ================= SECCIÓN: PACIENTES ================= -->
+            <section id="view-pacientes" class="view-section" style="display: none;">
+                <div class="view-header">
+                    <h2><i class="fa-solid fa-users"></i> Pacientes</h2>
+                    <p class="view-subtitle">Historial de pacientes registrados en Clínica Plaza Dent</p>
+                </div>
+                <div class="view-content-card">
+                    <table class="info-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre Completo</th>
+                                <th>RUT / Pasaporte</th>
+                                <th>Teléfono</th>
+                                <th>Última Consulta</th>
+                                <th>Estado de Pago</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Carlos Muñoz Soto</td>
+                                <td>18.234.567-8</td>
+                                <td>+569 5555 4433</td>
+                                <td>22 de Jun, 2026</td>
+                                <td><span class="badge badge-success">Al día</span></td>
+                            </tr>
+                            <tr>
+                                <td>Rosa Rodríguez Castro</td>
+                                <td>15.342.112-K</td>
+                                <td>+569 6666 7788</td>
+                                <td>23 de Jun, 2026</td>
+                                <td><span class="badge badge-success">Al día</span></td>
+                            </tr>
+                            <tr>
+                                <td>Oscar Ignacio Valenzuela</td>
+                                <td>19.876.543-2</td>
+                                <td>+569 7777 8899</td>
+                                <td>22 de Jun, 2026</td>
+                                <td><span class="badge badge-warning">Saldo Pendiente</span></td>
+                            </tr>
+                            <tr>
+                                <td>Marcelo Gumera Rojas</td>
+                                <td>16.453.789-5</td>
+                                <td>+569 1122 3344</td>
+                                <td>23 de Jun, 2026</td>
+                                <td><span class="badge badge-success">Al día</span></td>
+                            </tr>
+                            <tr>
+                                <td>Eudy Alberto González</td>
+                                <td>21.098.765-4</td>
+                                <td>+569 9887 7665</td>
+                                <td>24 de Jun, 2026</td>
+                                <td><span class="badge badge-success">Al día</span></td>
+                            </tr>
+                            <tr>
+                                <td>María Angélica Lizana</td>
+                                <td>14.876.321-0</td>
+                                <td>+569 4433 2211</td>
+                                <td>19 de Jun, 2026</td>
+                                <td><span class="badge badge-success">Al día</span></td>
+                            </tr>
+                            <tr>
+                                <td>Felipe Ignacio Jara</td>
+                                <td>17.654.987-6</td>
+                                <td>+569 8899 0011</td>
+                                <td>21 de Jun, 2026</td>
+                                <td><span class="badge badge-danger">Moroso</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ================= SECCIÓN: ADMINISTRADOR ================= -->
+            <section id="view-administrador" class="view-section" style="display: none;">
+                <div class="view-header">
+                    <h2><i class="fa-solid fa-user-tie"></i> Administrador</h2>
+                    <p class="view-subtitle">Resumen del personal y la clínica dental</p>
+                </div>
+                
+                <div class="admin-grid">
+                    <!-- Tarjeta de la Clínica -->
+                    <div class="view-content-card">
+                        <h3><i class="fa-solid fa-hospital"></i> Información de la Clínica</h3>
+                        <div class="info-list">
+                            <div class="info-item"><strong>Nombre Comercial:</strong> Clínica Dental Plaza Dent</div>
+                            <div class="info-item"><strong>Razón Social:</strong> Odontología Plaza Dent Limitada</div>
+                            <div class="info-item"><strong>Dirección:</strong> Av. Providencia 1240, Oficina 402, Santiago</div>
+                            <div class="info-item"><strong>Teléfono Contacto:</strong> +56 2 2987 6543</div>
+                            <div class="info-item"><strong>Boxes Habilitados:</strong> 3 Boxes Clínicos</div>
+                            <div class="info-item"><strong>Horario de Operación:</strong> Lunes a Viernes (08:00 - 19:00), Sábado (09:00 - 14:00)</div>
+                        </div>
+                    </div>
+
+                    <!-- Tarjeta de Staff Médico -->
+                    <div class="view-content-card">
+                        <h3><i class="fa-solid fa-user-md"></i> Personal Médico Asignado</h3>
+                        <div class="staff-list">
+                            <div class="staff-card">
+                                <div class="staff-avatar">MC</div>
+                                <div class="staff-info">
+                                    <h4>Dr. Maximiliano Cifuentes</h4>
+                                    <p>Director Médico - Cirugía Buco Maxilofacial</p>
+                                    <span class="box-badge">Box 1</span>
+                                </div>
+                            </div>
+                            <div class="staff-card">
+                                <div class="staff-avatar">MR</div>
+                                <div class="staff-info">
+                                    <h4>Dra. Milena Rutherford</h4>
+                                    <p>Odontología General y Rehabilitación Oral</p>
+                                    <span class="box-badge">Box 2</span>
+                                </div>
+                            </div>
+                            <div class="staff-card">
+                                <div class="staff-avatar">AA</div>
+                                <div class="staff-info">
+                                    <h4>Dra. Andrea Alarcón</h4>
+                                    <p>Ortodoncia y Estética Dental</p>
+                                    <span class="box-badge">Box 3</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ================= SECCIÓN: REPORTES ================= -->
+            <section id="view-reportes" class="view-section" style="display: none;">
+                <div class="view-header">
+                    <h2><i class="fa-solid fa-chart-column"></i> Reportes</h2>
+                    <p class="view-subtitle">Estadísticas clave de citas y rendimiento mensual</p>
+                </div>
+                
+                <!-- KPI Row -->
+                <div class="kpi-row">
+                    <div class="kpi-card">
+                        <div class="kpi-icon"><i class="fa-solid fa-calendar-check"></i></div>
+                        <div class="kpi-data">
+                            <span class="kpi-value">142</span>
+                            <span class="kpi-title">Citas Totales (Mes)</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon"><i class="fa-solid fa-percent"></i></div>
+                        <div class="kpi-data">
+                            <span class="kpi-value">94.2%</span>
+                            <span class="kpi-title">Tasa de Asistencia</span>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon"><i class="fa-solid fa-user-plus"></i></div>
+                        <div class="kpi-data">
+                            <span class="kpi-value">37</span>
+                            <span class="kpi-title">Pacientes Nuevos</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Summary Table -->
+                <div class="view-content-card">
+                    <h3><i class="fa-solid fa-chart-line"></i> Resumen de Consultas Mensuales</h3>
+                    <table class="info-table">
+                        <thead>
+                            <tr>
+                                <th>Mes (2026)</th>
+                                <th>Citas Agendadas</th>
+                                <th>Citas Confirmadas</th>
+                                <th>Inasistencias</th>
+                                <th>Tasa de Éxito</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Junio (Curso)</td>
+                                <td>142</td>
+                                <td>134</td>
+                                <td>8</td>
+                                <td>94.3%</td>
+                            </tr>
+                            <tr>
+                                <td>Mayo</td>
+                                <td>158</td>
+                                <td>148</td>
+                                <td>10</td>
+                                <td>93.6%</td>
+                            </tr>
+                            <tr>
+                                <td>Abril</td>
+                                <td>135</td>
+                                <td>129</td>
+                                <td>6</td>
+                                <td>95.5%</td>
+                            </tr>
+                            <tr>
+                                <td>Marzo</td>
+                                <td>124</td>
+                                <td>115</td>
+                                <td>9</td>
+                                <td>92.7%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ================= SECCIÓN: CONFIGURACIÓN ================= -->
+            <section id="view-configuracion" class="view-section" style="display: none;">
+                <div class="view-header">
+                    <h2><i class="fa-solid fa-gear"></i> Configuración</h2>
+                    <p class="view-subtitle">Detalles de la cuenta del profesional y la institución</p>
+                </div>
+                
+                <div class="config-grid">
+                    <!-- Cuenta del Doctor -->
+                    <div class="view-content-card">
+                        <h3><i class="fa-solid fa-user-circle"></i> Datos del Profesional</h3>
+                        <div class="info-list">
+                            <div class="info-item"><strong>Nombre Completo:</strong> Dr. Maximiliano Cifuentes</div>
+                            <div class="info-item"><strong>RUT:</strong> 12.365.963-K</div>
+                            <div class="info-item"><strong>Especialidad Principal:</strong> Cirujano Dentista</div>
+                            <div class="info-item"><strong>Especialidad Postgrado:</strong> Cirugía Buco Maxilofacial (Duoc UC)</div>
+                            <div class="info-item"><strong>Registro SIS:</strong> Nº 49281-3</div>
+                            <div class="info-item"><strong>Correo Clínico:</strong> m.cifuentes@plazadent.cl</div>
+                        </div>
+                    </div>
+
+                    <!-- Institución Educativa -->
+                    <div class="view-content-card">
+                        <h3><i class="fa-solid fa-graduation-cap"></i> Institución Educativa / Entorno</h3>
+                        <div class="info-list">
+                            <div class="info-item"><strong>Institución:</strong> Duoc UC</div>
+                            <div class="info-item"><strong>Escuela:</strong> Escuela de Salud</div>
+                            <div class="info-item"><strong>Carrera:</strong> Técnico en Odontología / Informática Biomédica</div>
+                            <div class="info-item"><strong>Curso/Sección:</strong> Proyecto Agente IA - Examen Final</div>
+                            <div class="info-item"><strong>ID de Cuenta AWS:</strong> 9569-0918-1848</div>
+                            <div class="info-item"><strong>Instancia EC2:</strong> i-09217b343cb889c93</div>
+                            <div class="info-item"><strong>Estado del Entorno:</strong> Producción Evaluativa (Segura)</div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
